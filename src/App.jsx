@@ -18,6 +18,7 @@ import WeatherModule from "./modules/farmer/WeatherModule";
 import AccessRestricted from "./components/AccessRestricted";
 import AssistantDock from "./assistant/AssistantDock";
 import { getFarmerPageMeta } from "./components/farmer/farmerNav";
+import { loadFarmCrops } from "./farm/cropStorage";
 import { getStoredUser } from "./auth/session";
 import {
   canAccessAdminAnalytics,
@@ -25,6 +26,7 @@ import {
   canAccessResearch,
 } from "./auth/access";
 import { FINANCING_ENABLED, RESEARCH_WORKSPACE_ENABLED } from "./config/features";
+import CropSetupPage from "./onboarding/CropSetupPage";
 import OnboardingFlow from "./onboarding/OnboardingFlow";
 import SettingsPage from "./settings/SettingsPage";
 
@@ -43,15 +45,26 @@ function FarmerProtectedRoute() {
     return <AccessRestricted />;
   }
 
+  // Every farmer feature is matched on crop, so an account without one is sent
+  // to crop setup before any farmer page renders. This also catches accounts
+  // created before crops were collected.
+  if (!loadFarmCrops().length && location.pathname !== "/setup-crops") {
+    return <Navigate to="/setup-crops" replace />;
+  }
+
   // The dock is mounted here rather than inside AppShell: this wrapper survives
   // navigation between farmer pages, so the panel stays open and an in-flight
   // answer keeps streaming instead of being remounted and aborted.
   const page = getFarmerPageMeta(location.pathname);
 
+  // Crop setup is a chrome-free step: the assistant would both overlap the crop
+  // grid and offer to answer questions about a farm with no crops recorded yet.
+  const showAssistant = location.pathname !== "/setup-crops";
+
   return (
     <>
       <Outlet />
-      <AssistantDock page={page.key} pageLabel={page.label} />
+      {showAssistant ? <AssistantDock page={page.key} pageLabel={page.label} /> : null}
     </>
   );
 }
@@ -92,6 +105,7 @@ export default function App() {
       <Route path="/splash" element={<SplashScreen />} />
       <Route path="/" element={<RootRedirect />} />
       <Route element={<FarmerProtectedRoute />}>
+        <Route path="/setup-crops" element={<CropSetupPage />} />
         <Route path="/dashboard" element={<DashboardModule />} />
         <Route path="/my-farm" element={<MyFarmModule />} />
         <Route path="/market-intelligence" element={<MarketIntelligenceModule />} />

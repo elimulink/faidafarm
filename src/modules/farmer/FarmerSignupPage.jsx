@@ -38,7 +38,8 @@ export default function FarmerSignupPage() {
         county: location,
       })
     );
-    navigate("/dashboard");
+    // Crops are required, so a new account goes to crop setup first.
+    navigate("/setup-crops");
   }
 
   return (

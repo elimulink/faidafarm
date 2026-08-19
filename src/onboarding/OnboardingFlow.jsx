@@ -15,6 +15,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { createMockUser, setStoredUser } from "../auth/session";
 import { RESEARCH_WORKSPACE_ENABLED } from "../config/features";
+import CropPicker from "../components/farmer/CropPicker";
+import { getCropNames } from "../data/cropCatalogue";
+import { saveFarmCrops } from "../farm/cropStorage";
 
 const workspaceOptions = [
   {
@@ -58,6 +61,7 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState("splash");
   const [workspace, setWorkspace] = useState(availableWorkspaces[0]);
   const [authMode, setAuthMode] = useState("signup");
+  const [selectedCrops, setSelectedCrops] = useState([]);
   const [loginMode, setLoginMode] = useState("phone");
   const [form, setForm] = useState({
     name: "",
@@ -77,13 +81,19 @@ export default function OnboardingFlow() {
     return () => window.clearTimeout(timer);
   }, [step]);
 
+  const needsCropStep = workspace.role === "farmer";
+
   const progress = useMemo(() => {
-    const steps = showWorkspaceStep
-      ? ["welcome", "workspace", "auth", "profile"]
-      : ["welcome", "auth", "profile"];
+    const steps = [
+      "welcome",
+      ...(showWorkspaceStep ? ["workspace"] : []),
+      "auth",
+      "profile",
+      ...(needsCropStep ? ["crops"] : []),
+    ];
     const index = Math.max(0, steps.indexOf(step));
     return ((index + 1) / steps.length) * 100;
-  }, [step]);
+  }, [step, needsCropStep]);
 
   function updateForm(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -98,9 +108,13 @@ export default function OnboardingFlow() {
       name: form.name,
       county: form.county,
       organization: form.organization,
+      crops: selectedCrops,
     });
 
     setStoredUser(user);
+    if (needsCropStep) {
+      saveFarmCrops(selectedCrops);
+    }
     navigate(workspace.path, { replace: true });
   }
 
@@ -128,11 +142,13 @@ export default function OnboardingFlow() {
               step === "welcome"
                 ? navigate("/login")
                 : setStep(
-                    step === "profile"
-                      ? "auth"
-                      : step === "auth" && showWorkspaceStep
-                        ? "workspace"
-                        : "welcome"
+                    step === "crops"
+                      ? "profile"
+                      : step === "profile"
+                        ? "auth"
+                        : step === "auth" && showWorkspaceStep
+                          ? "workspace"
+                          : "welcome"
                   )
             }
             className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E1E8DE] text-[#233025]"
@@ -181,9 +197,18 @@ export default function OnboardingFlow() {
         {step === "profile" ? (
           <ProfileStep
             form={form}
-            onFinish={finishOnboarding}
+            onFinish={needsCropStep ? () => setStep("crops") : finishOnboarding}
             onUpdate={updateForm}
             workspace={workspace}
+            nextLabel={needsCropStep ? "Add your crops" : `Enter ${workspace.title}`}
+          />
+        ) : null}
+
+        {step === "crops" ? (
+          <CropStep
+            selected={selectedCrops}
+            onChange={setSelectedCrops}
+            onFinish={finishOnboarding}
           />
         ) : null}
       </div>
@@ -343,7 +368,48 @@ function AuthStep({
   );
 }
 
-function ProfileStep({ form, onFinish, onUpdate, workspace }) {
+function CropStep({ selected, onChange, onFinish }) {
+  const canContinue = selected.length > 0;
+
+  return (
+    <section className="flex-1 py-8">
+      <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#2F8F46]">
+        Your crops
+      </p>
+      <h2 className="mt-3 text-[34px] font-bold leading-[1.06]">What do you grow?</h2>
+      <p className="mt-4 text-base leading-7 text-[#667164]">
+        Pick every crop on your farm. Prices, buyers and alerts are matched to these,
+        and you can change them any time from My Farm.
+      </p>
+
+      <div className="mt-6">
+        <CropPicker
+          selected={selected}
+          onChange={onChange}
+          minLabel="Select at least one crop to continue"
+        />
+      </div>
+
+      {canContinue ? (
+        <p className="mt-4 rounded-2xl bg-[#F1F6EE] px-4 py-3 text-sm font-medium text-[#20562B]">
+          Growing: {getCropNames(selected).join(", ")}
+        </p>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={onFinish}
+        disabled={!canContinue}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#166534] px-6 py-4 text-base font-semibold text-white disabled:bg-[#CFD9CB]"
+      >
+        Finish setup
+        <ArrowRight className="h-5 w-5" />
+      </button>
+    </section>
+  );
+}
+
+function ProfileStep({ form, onFinish, onUpdate, workspace, nextLabel = "" }) {
   const isFarmer = workspace.role === "farmer";
 
   return (
@@ -385,7 +451,7 @@ function ProfileStep({ form, onFinish, onUpdate, workspace }) {
         onClick={onFinish}
         className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-[#166534] px-6 py-4 text-base font-semibold text-white"
       >
-        Enter {workspace.title}
+        {nextLabel || `Enter ${workspace.title}`}
         <ArrowRight className="h-5 w-5" />
       </button>
     </section>

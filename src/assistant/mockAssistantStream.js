@@ -9,6 +9,7 @@
 
 import { MARKET_REFERENCE_PRICE, buyers, getMatchScore } from "../data/findBuyersData";
 import { farmOverview, priceToday } from "../data/farmerDashboardData";
+import { getPrimaryCropName } from "../farm/cropStorage";
 
 const CHUNK_DELAY_MS = 18;
 const THINKING_DELAY_MS = 420;
@@ -33,7 +34,7 @@ function sellAnswer() {
 
   return `## Hold for now
 
-Your ${farmOverview.cropName} is at ${farmOverview.stage.toLowerCase()} with harvest in ${farmOverview.harvestIn}. Today's price is **${priceToday.value}** and it is ${priceToday.trend.toLowerCase()} - ${priceToday.change}.
+Your ${getPrimaryCropName(farmOverview.cropName)} is at ${farmOverview.stage.toLowerCase()} with harvest in ${farmOverview.harvestIn}. Today's price is **${priceToday.value}** and it is ${priceToday.trend.toLowerCase()} - ${priceToday.change}.
 
 Selling before harvest means accepting today's price for a crop that is still gaining weight, so the recommendation is to wait.
 
@@ -76,7 +77,7 @@ function weatherAnswer() {
 - **Tomorrow:** moderate rainfall expected in your area
 - **Next week:** drying conditions, prepare irrigation for young crops
 
-For ${farmOverview.cropName} at ${farmOverview.stage.toLowerCase()}, rain now is helpful. The risk is rain arriving *during* drying after harvest, which lowers grade and therefore price.
+For ${getPrimaryCropName(farmOverview.cropName)} at ${farmOverview.stage.toLowerCase()}, rain now is helpful. The risk is rain arriving *during* drying after harvest, which lowers grade and therefore price.
 
 > Note: this is a demonstration reply from local data, not a live model.`;
 }
@@ -88,7 +89,7 @@ You asked: *${String(question || "").slice(0, 140)}*
 
 Once the assistant backend is connected I will answer this from your live farm data. For now try one of these, which have demonstration replies wired up:
 
-- Should I sell my ${farmOverview.cropName.toLowerCase()} now?
+- Should I sell my ${getPrimaryCropName(farmOverview.cropName).toLowerCase()} now?
 - Who are the best buyers near me?
 - What is today's price?
 - What is the weather doing this week?

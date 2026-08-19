@@ -52,7 +52,7 @@ export const buyers = [
     town: "Machakos",
     county: "Machakos",
     distanceKm: 96,
-    crops: ["Ndengu", "Green grams", "Pigeon peas"],
+    crops: ["Ndengu", "Pigeon peas"],
     offerPerKg: 90,
     demand: "High",
     verification: "reviewed",

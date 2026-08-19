@@ -17,6 +17,7 @@ import {
   recommendation,
   timelineSteps,
 } from "../../data/farmerDashboardData";
+import { getPrimaryCropName } from "../../farm/cropStorage";
 
 function FarmOverviewCard() {
   return (
@@ -30,7 +31,7 @@ function FarmOverviewCard() {
 
         <div className="flex-1">
           <h4 className="text-[30px] font-bold leading-none text-[#1B241D]">
-            {farmOverview.cropName}
+            {getPrimaryCropName(farmOverview.cropName)}
           </h4>
           <div className="mt-3 inline-flex rounded-full bg-[#EAF4E6] px-3 py-1 text-sm font-medium text-[#2F6B33]">
             {farmOverview.stage}
@@ -296,7 +297,7 @@ function MobileDashboardContent() {
           </div>
 
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-[#1C251D]">{farmOverview.cropName}</h3>
+            <h3 className="text-xl font-bold text-[#1C251D]">{getPrimaryCropName(farmOverview.cropName)}</h3>
             <div className="mt-2 inline-flex rounded-full bg-[#EAF4E6] px-3 py-1 text-xs font-medium text-[#2F6B33]">
               {farmOverview.stage}
             </div>

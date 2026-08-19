@@ -61,6 +61,7 @@ export function createMockUser({
   name,
   county,
   organization,
+  crops = [],
 }) {
   const inferredRole = inferRoleFromLogin({ loginMode, email, phone });
   const requestedRole = RESEARCH_WORKSPACE_ENABLED ? preferredRole : "farmer";
@@ -80,6 +81,7 @@ export function createMockUser({
       buildDisplayName(identifier, role === "farmer" ? "Farmer User" : "Research User"),
     county: String(county || "").trim(),
     organization: String(organization || "").trim(),
+    crops: Array.isArray(crops) ? crops : [],
     loginMode,
   };
 }
