@@ -46,9 +46,9 @@ function MobileContent() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F1F6EE]">
               <Icon className="h-6 w-6 text-[#2F8F46]" />
             </div>
-            <h3 className="mt-4 text-lg font-bold text-[#182118]">{item.title}</h3>
-            <p className="mt-2 text-sm text-[#616A5F]">{item.desc}</p>
-            <button className="mt-4 rounded-2xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white">
+            <h3 className="mt-3 text-lg font-bold text-[#182118]">{item.title}</h3>
+            <p className="mt-1 hidden text-sm text-[#616A5F] sm:block">{item.desc}</p>
+            <button className="mt-3 rounded-2xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white">
               Apply Interest
             </button>
           </MobileCard>
@@ -64,7 +64,7 @@ export default function FinancingModule() {
       current="financing"
       title="Financing"
       subtitle="Loans and Partner Support"
-      mobileSubtitle="Module"
+      mobileSubtitle="Support"
       desktopContent={<DesktopContent />}
       mobileContent={<MobileContent />}
     />

@@ -26,7 +26,7 @@ function DesktopContent() {
                   </div>
                   <div>
                     <h4 className="text-xl font-bold text-[#1A2225]">{item.title}</h4>
-                    <p className="mt-1 text-[#61707B]">{item.desc}</p>
+                <p className="mt-1 text-sm text-[#61707B] sm:text-base">{item.desc}</p>
                   </div>
                 </div>
               );
@@ -60,14 +60,14 @@ function MobileContent() {
       {weatherCards.map((item) => {
         const Icon = item.icon;
         return (
-          <MobileCard key={item.id} className="border-[#DCE7F1] bg-[#F3F7FC]">
+          <MobileCard key={item.id} className="border-[#DCE7F1] bg-white">
             <div className="flex items-start gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E1ECF8]">
                 <Icon className="h-6 w-6 text-[#5383C5]" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-[#1A2225]">{item.title}</h3>
-                <p className="mt-1 text-sm text-[#61707B]">{item.desc}</p>
+                <p className="mt-1 hidden text-sm text-[#61707B] sm:block">{item.desc}</p>
               </div>
             </div>
           </MobileCard>
@@ -83,7 +83,7 @@ export default function WeatherModule() {
       current="weather"
       title="Weather"
       subtitle="Kitui, Kenya Forecast"
-      mobileSubtitle="Module"
+      mobileSubtitle="Kitui"
       desktopContent={<DesktopContent />}
       mobileContent={<MobileContent />}
     />

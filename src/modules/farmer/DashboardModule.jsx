@@ -21,7 +21,7 @@ import {
 function FarmOverviewCard() {
   return (
     <Card>
-      <h3 className="text-xl font-semibold text-[#1F2B1F]">Farm Overview</h3>
+      <h3 className="text-lg font-semibold text-[#1F2B1F]">Farm Overview</h3>
 
       <div className="mt-6 flex items-start gap-5">
         <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#EEF5EA]">
@@ -29,7 +29,7 @@ function FarmOverviewCard() {
         </div>
 
         <div className="flex-1">
-          <h4 className="text-[36px] font-bold leading-none text-[#1B241D]">
+          <h4 className="text-[30px] font-bold leading-none text-[#1B241D]">
             {farmOverview.cropName}
           </h4>
           <div className="mt-3 inline-flex rounded-full bg-[#EAF4E6] px-3 py-1 text-sm font-medium text-[#2F6B33]">
@@ -38,7 +38,7 @@ function FarmOverviewCard() {
 
           <div className="mt-5">
             <p className="text-sm text-[#6B7468]">Harvest in</p>
-            <p className="mt-1 text-[40px] font-bold leading-none text-[#141B16]">
+            <p className="mt-1 text-[32px] font-bold leading-none text-[#141B16]">
               {farmOverview.harvestIn}
             </p>
           </div>
@@ -52,7 +52,7 @@ function FarmOverviewCard() {
             style={{ width: `${farmOverview.progress}%` }}
           />
         </div>
-        <span className="text-lg font-semibold text-[#344034]">{farmOverview.progress}%</span>
+        <span className="text-base font-medium text-[#344034]">{farmOverview.progress}%</span>
       </div>
     </Card>
   );
@@ -61,7 +61,7 @@ function FarmOverviewCard() {
 function RecommendationCard() {
   return (
     <Card className="bg-[#F4F8F1]">
-      <h3 className="text-xl font-semibold text-[#1F2B1F]">Today&apos;s Recommendation</h3>
+      <h3 className="text-lg font-semibold text-[#1F2B1F]">Today&apos;s Recommendation</h3>
 
       <div className="mt-6 flex items-start justify-between gap-6">
         <div className="max-w-[60%]">
@@ -69,13 +69,13 @@ function RecommendationCard() {
             {recommendation.label}
           </div>
 
-          <h2 className="mt-5 text-[50px] font-bold leading-[1.02] text-[#111711]">
+          <h2 className="mt-5 text-[38px] font-bold leading-[1.08] text-[#111711]">
             Wait 10 days
             <br />
             before selling
           </h2>
 
-          <p className="mt-5 max-w-[460px] text-lg leading-8 text-[#4B574C]">
+          <p className="mt-5 max-w-[460px] text-base leading-7 text-[#4B574C]">
             {recommendation.description}
           </p>
 
@@ -104,14 +104,14 @@ function RecommendationCard() {
 function PriceTodayCard() {
   return (
     <Card>
-      <h3 className="text-xl font-semibold text-[#1F2B1F]">Price Today</h3>
+      <h3 className="text-lg font-semibold text-[#1F2B1F]">Price Today</h3>
 
       <div className="mt-6">
         <p className="text-sm text-[#6B7468]">{priceToday.crop}</p>
 
         <div className="mt-3 flex items-center gap-4">
-          <div className="text-[44px] font-bold leading-none text-[#111711]">
-            KES 80<span className="text-[24px] font-semibold">/kg</span>
+          <div className="text-[34px] font-bold leading-none text-[#111711]">
+            KES 80<span className="text-[18px] font-medium">/kg</span>
           </div>
           <div className="inline-flex items-center gap-1 rounded-full bg-[#EEF7E8] px-3 py-1 text-sm font-semibold text-[#2F8F46]">
             <TrendingUp className="h-4 w-4" />
@@ -144,7 +144,7 @@ function WeatherStrip() {
           </div>
           <div>
             <p className="text-sm font-semibold text-[#4573B5]">Weather Alert</p>
-            <h3 className="text-[30px] font-bold leading-tight text-[#1A2225]">
+            <h3 className="text-[24px] font-bold leading-tight text-[#1A2225]">
               Rain expected tomorrow
             </h3>
             <p className="mt-1 text-base text-[#61707B]">
@@ -167,7 +167,7 @@ function WeatherStrip() {
 function QuickActions() {
   return (
     <Card>
-      <h3 className="text-2xl font-semibold text-[#1F2B1F]">Quick Actions</h3>
+      <h3 className="text-xl font-semibold text-[#1F2B1F]">Quick Actions</h3>
 
       <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
         {quickActions.map((item) => {
@@ -181,7 +181,7 @@ function QuickActions() {
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1F6EE]">
                 <Icon className="h-7 w-7 text-[#2F8F46]" />
               </div>
-              <h4 className="mt-5 text-[22px] font-semibold text-[#182118]">{item.title}</h4>
+              <h4 className="mt-5 text-lg font-semibold text-[#182118]">{item.title}</h4>
               <p className="mt-3 text-[15px] leading-7 text-[#616A5F]">{item.desc}</p>
               <div className="mt-5 flex justify-end">
                 <ArrowRight className="h-5 w-5 text-[#313B31]" />
@@ -197,7 +197,7 @@ function QuickActions() {
 function MarketSummary() {
   return (
     <Card>
-      <h3 className="text-2xl font-semibold text-[#1F2B1F]">Market Summary</h3>
+      <h3 className="text-xl font-semibold text-[#1F2B1F]">Market Summary</h3>
 
       <div className="mt-5 space-y-4">
         {marketRows.map((row) => (
@@ -217,7 +217,7 @@ function MarketSummary() {
 function Timeline() {
   return (
     <Card>
-      <h3 className="text-2xl font-semibold text-[#1F2B1F]">Your Farm Timeline</h3>
+      <h3 className="text-xl font-semibold text-[#1F2B1F]">Your Farm Timeline</h3>
 
       <div className="mt-8 overflow-x-auto">
         <div className="min-w-[680px]">
@@ -257,7 +257,7 @@ function RecentAlerts() {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-semibold text-[#1F2B1F]">Recent Alerts</h3>
+        <h3 className="text-xl font-semibold text-[#1F2B1F]">Recent Alerts</h3>
         <Link to="/alerts" className="text-sm font-semibold text-[#2F8F46] hover:text-[#256D36]">
           View all
         </Link>
@@ -296,14 +296,14 @@ function MobileDashboardContent() {
           </div>
 
           <div className="flex-1">
-            <h3 className="text-2xl font-bold text-[#1C251D]">{farmOverview.cropName}</h3>
+            <h3 className="text-xl font-bold text-[#1C251D]">{farmOverview.cropName}</h3>
             <div className="mt-2 inline-flex rounded-full bg-[#EAF4E6] px-3 py-1 text-xs font-medium text-[#2F6B33]">
               {farmOverview.stage}
             </div>
 
             <div className="mt-4">
               <p className="text-sm text-[#6B7468]">Harvest in</p>
-              <p className="text-[40px] font-bold leading-none text-[#111711]">
+              <p className="text-[32px] font-bold leading-none text-[#111711]">
                 {farmOverview.harvestIn}
               </p>
             </div>
@@ -321,16 +321,15 @@ function MobileDashboardContent() {
         </div>
       </MobileCard>
 
-      <MobileCard className="bg-[#F4F8F1]">
-        <div className="inline-flex rounded-full bg-[#E3F0DE] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#2F7C33]">
+      <MobileCard className="border-[#DDEBDD]">
+        <div className="inline-flex rounded-full bg-[#EDF7ED] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#2F7C33]">
           {recommendation.label}
         </div>
-        <h2 className="mt-4 text-[34px] font-bold leading-tight text-[#111711]">
+        <h2 className="mt-3 text-[25px] font-bold leading-tight text-[#111711]">
           Wait 10 days
           <br />
           before selling
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-[#4B574C]">{recommendation.description}</p>
 
         <div className="mt-4 flex items-center justify-between gap-4">
           <Link
@@ -340,8 +339,8 @@ function MobileDashboardContent() {
             View Analysis
           </Link>
 
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DCEED4]">
-            <TrendingUp className="h-8 w-8 text-[#2F8F46]" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EDF7ED]">
+            <TrendingUp className="h-7 w-7 text-[#2F8F46]" />
           </div>
         </div>
       </MobileCard>
@@ -350,8 +349,8 @@ function MobileDashboardContent() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm text-[#6B7468]">Price Today</p>
-            <div className="mt-2 text-[34px] font-bold leading-none text-[#111711]">
-              KES 80<span className="text-[18px] font-semibold">/kg</span>
+            <div className="mt-2 text-[28px] font-bold leading-none text-[#111711]">
+              KES 80<span className="text-base font-medium">/kg</span>
             </div>
           </div>
           <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#EEF7E8] px-3 py-1 text-xs font-semibold text-[#2F8F46]">
@@ -362,26 +361,23 @@ function MobileDashboardContent() {
 
         <SimpleBars />
 
-        <p className="mt-3 text-sm text-[#2F8F46]">{priceToday.change}</p>
+        <p className="mt-2 text-sm text-[#2F8F46]">{priceToday.change}</p>
       </MobileCard>
 
-      <div className="rounded-[24px] border border-[#DCE7F1] bg-[#F3F7FC] p-4 shadow-sm">
+      <div className="rounded-[18px] border border-[#DCE7F1] bg-white p-3.5 shadow-[0_2px_10px_rgba(24,33,24,0.04)]">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E1ECF8]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF5FC]">
             <CloudRain className="h-6 w-6 text-[#5383C5]" />
           </div>
           <div>
             <p className="text-xs font-semibold text-[#4573B5]">Weather Alert</p>
-            <h3 className="mt-1 text-lg font-bold text-[#1A2225]">Rain expected tomorrow</h3>
-            <p className="mt-1 text-sm leading-6 text-[#61707B]">
-              Moderate rainfall expected in your area.
-            </p>
+            <h3 className="mt-1 text-base font-bold text-[#1A2225]">Rain expected tomorrow</h3>
           </div>
         </div>
       </div>
 
       <div>
-        <h3 className="mb-3 text-lg font-semibold text-[#1F2B1F]">Quick Actions</h3>
+        <h3 className="mb-2.5 text-lg font-semibold text-[#1F2B1F]">Quick Actions</h3>
         <div className="grid grid-cols-3 gap-3">
           {quickActions.map((item) => {
             const Icon = item.icon;
@@ -389,12 +385,12 @@ function MobileDashboardContent() {
               <Link
                 key={item.title}
                 to={item.path}
-                className={`rounded-[22px] border border-[#E8ECE5] ${item.accent} p-4 text-center shadow-sm`}
+                className="rounded-[18px] border border-[#E8ECE5] bg-white p-3 text-center shadow-[0_2px_10px_rgba(24,33,24,0.04)]"
               >
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F1F6EE]">
-                  <Icon className="h-6 w-6 text-[#2F8F46]" />
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F1F6EE]">
+                  <Icon className="h-5 w-5 text-[#2F8F46]" />
                 </div>
-                <p className="mt-3 text-[13px] font-semibold leading-4 text-[#1B241D]">
+                <p className="mt-2 text-[12px] font-semibold leading-4 text-[#1B241D]">
                   {item.title}
                 </p>
               </Link>

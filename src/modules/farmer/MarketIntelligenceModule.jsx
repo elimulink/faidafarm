@@ -16,7 +16,7 @@ function DesktopContent() {
       <div className="col-span-12 xl:col-span-8">
         <Card>
           <SectionTitle>Price Forecast</SectionTitle>
-          <p className="text-lg text-[#5B6559]">
+          <p className="hidden text-lg text-[#5B6559] sm:block">
             Ndengu current price is trending upward in your region.
           </p>
           <div className="mt-5 flex items-center gap-4">
@@ -91,7 +91,7 @@ export default function MarketIntelligenceModule() {
       current="market-intelligence"
       title="Market Intelligence"
       subtitle="Kitui, Kenya"
-      mobileSubtitle="Module"
+      mobileSubtitle="Kitui"
       desktopContent={<DesktopContent />}
       mobileContent={<MobileContent />}
     />

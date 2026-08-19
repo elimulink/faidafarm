@@ -85,7 +85,7 @@ export default function BuyersModule() {
       current="buyers"
       title="Buyers"
       subtitle="Matched Buyers Near You"
-      mobileSubtitle="Module"
+      mobileSubtitle="Kitui"
       desktopContent={<DesktopContent />}
       mobileContent={<MobileContent />}
     />

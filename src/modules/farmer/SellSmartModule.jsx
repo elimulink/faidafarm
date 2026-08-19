@@ -64,18 +64,15 @@ function DesktopContent() {
 function MobileContent() {
   return (
     <div className="space-y-4">
-      <MobileCard className="bg-[#F4F8F1]">
-        <div className="inline-flex rounded-full bg-[#E3F0DE] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#2F7C33]">
+      <MobileCard className="border-[#DDEBDD]">
+        <div className="inline-flex rounded-full bg-[#EDF7ED] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#2F7C33]">
           AI Recommendation
         </div>
-        <h2 className="mt-4 text-[34px] font-bold leading-tight text-[#111711]">
+        <h2 className="mt-3 text-[28px] font-bold leading-tight text-[#111711]">
           Wait 10 days
           <br />
           before selling
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-[#4B574C]">
-          Prices are rising and demand is increasing in your region.
-        </p>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-white p-4">
             <p className="text-xs text-[#667164]">Today</p>
@@ -113,7 +110,7 @@ export default function SellSmartModule() {
       current="sell-smart"
       title="Sell Smart"
       subtitle="Kitui, Kenya"
-      mobileSubtitle="Module"
+      mobileSubtitle="Kitui"
       desktopContent={<DesktopContent />}
       mobileContent={<MobileContent />}
     />

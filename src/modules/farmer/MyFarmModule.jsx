@@ -125,7 +125,7 @@ export default function MyFarmModule() {
       current="my-farm"
       title="My Farm"
       subtitle="Kitui, Kenya"
-      mobileSubtitle="Module"
+      mobileSubtitle="Kitui"
       desktopContent={<DesktopContent />}
       mobileContent={<MobileContent />}
     />

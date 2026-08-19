@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: faidafarm-fmnr-api
+    env: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: faidafarm-fmnr-db
+          property: connectionString
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: KOBO_BASE_URL
+        sync: false
+      - key: KOBO_API_TOKEN
+        sync: false
+      - key: KOBO_PROJECT_ID
+        sync: false
+
+databases:
+  - name: faidafarm-fmnr-db
+    plan: starter

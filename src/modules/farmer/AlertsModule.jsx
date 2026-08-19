@@ -69,7 +69,7 @@ export default function AlertsModule() {
       current="alerts"
       title="Alerts"
       subtitle="Recent Notifications"
-      mobileSubtitle="Module"
+      mobileSubtitle="Today"
       desktopContent={<DesktopContent />}
       mobileContent={<MobileContent />}
     />

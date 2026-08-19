@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "885156990402",
+    "project_id": "faidafarm-baa26",
+    "storage_bucket": "faidafarm-baa26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:885156990402:android:995c70cd48ec946d379a5b",
+        "android_client_info": {
+          "package_name": "com.faidafarm.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7SWwCuNpj2-928s_N0ZQzTat2aD9wqmA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

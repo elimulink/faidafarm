@@ -12,6 +12,9 @@ dist
 dist-ssr
 .firebase
 *.local
+android-studio-*-windows.exe
+commandlinetools-*.zip
+android-cmdline-tools-temp/
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +26,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Build artifacts
+*.apk
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
