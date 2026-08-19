@@ -97,7 +97,35 @@ Once the assistant backend is connected I will answer this from your live farm d
 > Note: this is a demonstration reply from local data, not a live model.`;
 }
 
-function pickAnswer(question) {
+function photoAnswer(hasImage) {
+  const subject = hasImage ? "photo" : "file";
+
+  return `## I cannot read your ${subject} yet
+
+Your ${subject} attached correctly - you can see it above the message - but looking
+*inside* it needs the assistant backend, which is not connected yet.
+
+Once it is, a photo of a leaf, pod or pest will be diagnosed here: what the problem
+looks like, how far it has spread, and what to do about it this week.
+
+**In the meantime, describe what you see** and I can still help:
+
+- Which crop, and how old is it?
+- Which part is affected - leaves, stem, pods or roots?
+- Spots, holes, wilting, or discolouring?
+
+> Note: this is a demonstration reply from local data, not a live model.`;
+}
+
+function pickAnswer(question, attachments = []) {
+  if (attachments.length) {
+    return photoAnswer(attachments.some((item) => item.isImage));
+  }
+
+  return pickTextAnswer(question);
+}
+
+function pickTextAnswer(question) {
   const text = String(question || "").toLowerCase();
 
   if (/\bsell|hold|wait|harvest\b/.test(text)) {
@@ -144,7 +172,7 @@ export async function streamMockAssistantReply({
   signal = null,
 } = {}) {
   const lastUserMessage = [...messages].reverse().find((message) => message.role === "user");
-  const answer = pickAnswer(lastUserMessage?.text);
+  const answer = pickAnswer(lastUserMessage?.text, lastUserMessage?.attachments || []);
 
   try {
     await wait(THINKING_DELAY_MS, signal);

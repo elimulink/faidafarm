@@ -125,9 +125,10 @@ export default function useAssistantChat({ context = null } = {}) {
   );
 
   const send = useCallback(
-    async (rawText) => {
+    async (rawText, attachments = []) => {
       const text = String(rawText || "").trim();
-      if (!text || isStreaming) {
+      // A photo on its own is a valid question: "what is wrong with this crop?"
+      if ((!text && !attachments.length) || isStreaming) {
         return;
       }
 
@@ -144,10 +145,21 @@ export default function useAssistantChat({ context = null } = {}) {
           working = [chat, ...working];
         }
 
-        const userMessage = { id: makeMessageId(), role: "user", text, createdAt: Date.now() };
+        const userMessage = {
+          id: makeMessageId(),
+          role: "user",
+          text,
+          attachments,
+          createdAt: Date.now(),
+        };
         history = [...chat.messages, userMessage].map((message) => ({
           role: message.role,
           text: message.text,
+          attachments: (message.attachments || []).map((item) => ({
+            name: item.name,
+            type: item.type,
+            isImage: item.isImage,
+          })),
         }));
 
         return working.map((item) =>
@@ -155,7 +167,9 @@ export default function useAssistantChat({ context = null } = {}) {
             ? {
                 ...item,
                 // The first question makes a better label than "New conversation".
-                title: isUntitledChatTitle(item.title) ? deriveChatTitle(text) : item.title,
+                title: isUntitledChatTitle(item.title)
+                  ? deriveChatTitle(text || (attachments[0]?.isImage ? "Crop photo" : "Attachment"))
+                  : item.title,
                 messages: [...item.messages, userMessage],
                 updatedAt: Date.now(),
               }

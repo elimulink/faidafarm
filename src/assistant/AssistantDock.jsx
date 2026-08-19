@@ -10,6 +10,7 @@ import { History, MessageSquarePlus, Sparkles, Trash2, WifiOff, X } from "lucide
 import Composer from "./Composer";
 import MessageBubble from "./MessageBubble";
 import useAssistantChat from "./useAssistantChat";
+import useAttachments from "./useAttachments";
 import { ASSISTANT_API_ENABLED } from "./assistantClient";
 import { formatChatStamp, groupChatsByRecency } from "./chatHistory";
 
@@ -171,6 +172,7 @@ export default function AssistantDock({ page = "", pageLabel = "" }) {
   const online = useOnlineStatus();
 
   const chat = useAssistantChat({ context: { page, pageLabel } });
+  const attachments = useAttachments();
   const { messages, isStreaming, streamingMessageId } = chat;
 
   const suggestions = SUGGESTIONS_BY_PAGE[page] || DEFAULT_SUGGESTIONS;
@@ -214,10 +216,14 @@ export default function AssistantDock({ page = "", pageLabel = "" }) {
 
   const submitDraft = useCallback(() => {
     const text = draft;
+    const files = attachments.items;
     setDraft("");
+    // Hand the items to the message and stop tracking them here; the sent
+    // message owns the previews from now on.
+    attachments.clear();
     setShowHistory(false);
-    chat.send(text);
-  }, [chat, draft]);
+    chat.send(text, files);
+  }, [attachments, chat, draft]);
 
   const pickSuggestion = useCallback(
     (suggestion) => {
@@ -278,6 +284,10 @@ export default function AssistantDock({ page = "", pageLabel = "" }) {
         onStop={chat.stop}
         streaming={isStreaming}
         disabled={!online}
+        attachments={attachments.items}
+        attachmentError={attachments.error}
+        onAddFiles={attachments.add}
+        onRemoveAttachment={attachments.remove}
       />
     </>
   );

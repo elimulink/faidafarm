@@ -150,6 +150,24 @@ export function loadChats() {
   }
 }
 
+// Blob URLs and File handles are alive only for this page load, so a stored
+// message keeps just enough to describe what was attached.
+function stripTransientAttachments(message) {
+  if (!message?.attachments?.length) {
+    return message;
+  }
+
+  return {
+    ...message,
+    attachments: message.attachments.map((item) => ({
+      id: item.id,
+      name: item.name,
+      size: item.size,
+      isImage: item.isImage,
+    })),
+  };
+}
+
 export function saveChats(chats = []) {
   if (typeof window === "undefined") {
     return;
@@ -158,7 +176,8 @@ export function saveChats(chats = []) {
   try {
     const trimmed = [...chats]
       .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-      .slice(0, MAX_STORED_CHATS);
+      .slice(0, MAX_STORED_CHATS)
+      .map((chat) => ({ ...chat, messages: chat.messages.map(stripTransientAttachments) }));
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
   } catch {
     // A full or unavailable storage quota must not break the conversation.

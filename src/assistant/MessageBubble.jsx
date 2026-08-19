@@ -3,7 +3,7 @@
 // an action row underneath.
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Ellipsis, RefreshCcw, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, Copy, Ellipsis, FileText, RefreshCcw, ThumbsDown, ThumbsUp } from "lucide-react";
 import ResponseBlocks from "./ResponseBlocks";
 
 function TypingIndicator() {
@@ -12,6 +12,37 @@ function TypingIndicator() {
       <span className="assistant-typing-dot" />
       <span className="assistant-typing-dot assistant-typing-dot-delay-1" />
       <span className="assistant-typing-dot assistant-typing-dot-delay-2" />
+    </div>
+  );
+}
+
+// A reloaded conversation keeps the attachment's name but not its blob URL,
+// so the thumbnail falls back to a labelled chip rather than a broken image.
+function SentAttachments({ items = [] }) {
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <div className="mb-2 flex flex-wrap justify-end gap-2">
+      {items.map((item) =>
+        item.isImage && item.url ? (
+          <img
+            key={item.id}
+            src={item.url}
+            alt={item.name}
+            className="h-28 w-28 rounded-2xl border border-[#DCEAD5] object-cover"
+          />
+        ) : (
+          <span
+            key={item.id}
+            className="inline-flex max-w-[190px] items-center gap-2 rounded-2xl border border-[#DCEAD5] bg-white px-2.5 py-2"
+          >
+            <FileText size={15} className="shrink-0 text-[#2F8F46]" />
+            <span className="truncate text-xs font-semibold text-[#182118]">{item.name}</span>
+          </span>
+        )
+      )}
     </div>
   );
 }
@@ -141,11 +172,16 @@ export default function MessageBubble({
   const text = String(message.text || "");
 
   if (isUser) {
+    const attachments = message.attachments || [];
+
     return (
-      <div className="flex w-full justify-end">
-        <div className="max-w-[92%] rounded-[20px] rounded-br-lg border border-[#DCEAD5] bg-[#F1F6EE] px-4 py-2.5 text-[15px] leading-relaxed text-[#182118] md:max-w-[76%] md:px-4 md:py-3">
-          <p className="whitespace-pre-wrap">{text}</p>
-        </div>
+      <div className="flex w-full flex-col items-end">
+        <SentAttachments items={attachments} />
+        {text ? (
+          <div className="max-w-[92%] rounded-[20px] rounded-br-lg border border-[#DCEAD5] bg-[#F1F6EE] px-4 py-2.5 text-[15px] leading-relaxed text-[#182118] md:max-w-[76%] md:px-4 md:py-3">
+            <p className="whitespace-pre-wrap">{text}</p>
+          </div>
+        ) : null}
       </div>
     );
   }

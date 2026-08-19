@@ -13,11 +13,79 @@ import {
   marketRows,
   priceToday,
   quickActions,
-  recentAlerts,
   recommendation,
   timelineSteps,
 } from "../../data/farmerDashboardData";
 import { getPrimaryCropName } from "../../farm/cropStorage";
+import PriceTrendChart from "../../components/charts/PriceTrendChart";
+import { PRICE_UNIT, getMarketInsight, getPriceStats, priceHistory } from "../../data/marketData";
+import { SEVERITIES, alerts as farmAlerts, formatAlertAge } from "../../data/alertsData";
+
+function TodayHero({ compact = false }) {
+  const stats = getPriceStats(priceHistory, 7);
+  const insight = getMarketInsight(stats);
+  const crop = getPrimaryCropName(farmOverview.cropName);
+  const holding = insight.tone === "hold";
+
+  return (
+    <div className="overflow-hidden rounded-[26px] border border-[#DCEAD5] bg-[#F7FBF5]">
+      <div className={compact ? "p-4" : "p-6"}>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#166534]">
+            <Sprout className="h-3.5 w-3.5" />
+            Today
+          </span>
+          <span className="text-xs font-semibold text-[#5F7A5F]">
+            {crop} · {farmOverview.stage}
+          </span>
+        </div>
+
+        <h2
+          className={`mt-3 font-bold leading-[1.1] tracking-tight text-[#14311D] ${
+            compact ? "text-[26px]" : "text-[34px]"
+          }`}
+        >
+          {holding ? "Hold your harvest" : "Sell sooner"}
+        </h2>
+        <p className="mt-2 max-w-[52ch] text-sm leading-6 text-[#3F5442]">{insight.detail}</p>
+
+        <dl className="mt-4 grid grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-white px-3 py-2.5">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#8A958A]">Price</dt>
+            <dd className="mt-1 text-lg font-bold text-[#182118]">KES {stats.current}</dd>
+          </div>
+          <div className="rounded-2xl bg-white px-3 py-2.5">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#8A958A]">7 days</dt>
+            <dd className="mt-1 text-lg font-bold text-[#2F8F46]">
+              {stats.changePct > 0 ? "+" : ""}
+              {stats.changePct}%
+            </dd>
+          </div>
+          <div className="rounded-2xl bg-white px-3 py-2.5">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#8A958A]">Harvest</dt>
+            <dd className="mt-1 text-lg font-bold text-[#182118]">{farmOverview.harvestIn}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            to="/sell-smart"
+            className="inline-flex items-center gap-1.5 rounded-2xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            See selling advice
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            to="/market-intelligence"
+            className="inline-flex items-center rounded-2xl border border-[#CFE3C8] bg-white px-4 py-2.5 text-sm font-semibold text-[#166534]"
+          >
+            Price trend
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function FarmOverviewCard() {
   return (
@@ -120,9 +188,14 @@ function PriceTodayCard() {
           </div>
         </div>
 
-        <SimpleBars />
-
-        <p className="mt-4 text-base text-[#2F8F46]">{priceToday.change}</p>
+        <div className="mt-4">
+          <PriceTrendChart
+            series={priceHistory.slice(-7)}
+            unit={PRICE_UNIT}
+            height={130}
+            label={`${priceToday.crop} price`}
+          />
+        </div>
 
         <Link
           to="/market-intelligence"
@@ -264,22 +337,28 @@ function RecentAlerts() {
         </Link>
       </div>
 
-      <div className="mt-5 space-y-4">
-        {recentAlerts.map((alert) => {
-          const Icon = alert.icon;
+      <div className="mt-5 space-y-3">
+        {farmAlerts.slice(0, 3).map((alert) => {
+          const severity = SEVERITIES[alert.severity];
           return (
-            <div
+            <Link
               key={alert.id}
-              className="flex items-center justify-between rounded-2xl border border-[#EEF2EC] px-4 py-4"
+              to="/alerts"
+              className="block rounded-2xl border border-[#EEF2EC] px-4 py-3.5 transition hover:bg-[#FAFCF9]"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F2F7EF]">
-                  <Icon className="h-5 w-5 text-[#2F8F46]" />
-                </div>
-                <span className="text-[15px] text-[#263026]">{alert.title}</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                  style={{ background: severity.surface, color: severity.tone }}
+                >
+                  {severity.label}
+                </span>
+                <span className="text-[11px] text-[#A0AA9E]">{formatAlertAge(alert.createdAt)}</span>
               </div>
-              <span className="text-sm text-[#6A7468]">{alert.time}</span>
-            </div>
+              <p className="mt-1.5 text-[15px] font-semibold leading-snug text-[#263026]">
+                {alert.title}
+              </p>
+            </Link>
           );
         })}
       </div>
@@ -290,6 +369,8 @@ function RecentAlerts() {
 function MobileDashboardContent() {
   return (
     <>
+      <TodayHero compact />
+
       <MobileCard>
         <div className="flex items-start gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EEF5EA]">
@@ -408,6 +489,10 @@ export default function DashboardModule() {
     <>
       <DesktopDashboardShell>
         <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12">
+            <TodayHero />
+          </div>
+
           <div className="col-span-12 xl:col-span-3">
             <FarmOverviewCard />
           </div>
