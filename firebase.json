@@ -11,6 +11,38 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "headers": [
+      {
+        "//": "Every HTML entry point, including / and the SPA routes rewritten to it. Headers match the REQUEST path, so /index.html alone does not cover / or /tools-services. A cached shell keeps requesting an old content-hashed bundle, which is what pinned the site to the first build.",
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "//": "Overrides the rule above. Built assets carry a content hash, so a new build is a new URL and these can be cached forever.",
+        "source": "/assets/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "//": "Crop and equipment photos keep stable filenames, so a day rather than forever - replacing one still reaches people quickly.",
+        "source": "**/*.@(jpg|jpeg|png|svg|webp|ico|woff2)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      }
     ]
   }
 }
