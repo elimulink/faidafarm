@@ -263,7 +263,7 @@ export const listings = [
     category: "service",
     name: "Crop spraying service",
     brand: "Trained operator",
-    image: "",
+    image: "/tools/spraying.jpg",
     price: { amount: 1200, unit: "per acre" },
     summary: "A trained operator sprays for you, chemicals not included.",
     description:
@@ -283,7 +283,7 @@ export const listings = [
     category: "service",
     name: "Produce transport",
     brand: "3 tonne lorry",
-    image: "",
+    image: "/tools/transport.jpg",
     price: { amount: 40, unit: "per km" },
     summary: "Move your harvest to the buyer or market.",
     description:
@@ -297,6 +297,26 @@ export const listings = [
     seller: SELLERS.kituiMachinery,
     rating: 4.2,
     reviews: 20,
+  },
+  {
+    id: "shelling-service",
+    category: "service",
+    name: "Maize shelling at your farm",
+    brand: "Operator brings the machine",
+    image: "/tools/maize-sheller.jpg",
+    price: { amount: 90, unit: "per bag" },
+    summary: "They come to you, shell the maize and leave.",
+    description:
+      "The operator brings a petrol sheller to your homestead and charges per 90 kg bag produced. Cheaper than hiring the machine outright unless you have several tonnes, and there is nothing to transport or return.",
+    specs: [
+      ["Charged", "Per 90 kg bag shelled"],
+      ["Output", "About 1 tonne per hour"],
+      ["Includes", "Operator and fuel"],
+      ["Notice", "1 day, longer at peak harvest"],
+    ],
+    seller: SELLERS.ukambaniSupplies,
+    rating: 4.5,
+    reviews: 26,
   },
 ];
 

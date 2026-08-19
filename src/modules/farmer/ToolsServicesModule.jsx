@@ -48,8 +48,9 @@ function ListingCard({ item }) {
             }}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Wrench className="h-9 w-9 text-[#2F8F46]" />
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[#8FAE8C]">
+            <Wrench className="h-9 w-9" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide">Photo coming</span>
           </div>
         )}
       </div>

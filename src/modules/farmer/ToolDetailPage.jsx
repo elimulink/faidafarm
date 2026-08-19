@@ -112,9 +112,10 @@ function DetailBody({ item, compact = false }) {
           {item.image ? (
             <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <Wrench className="h-12 w-12 text-[#2F8F46]" />
-            </div>
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[#8FAE8C]">
+            <Wrench className="h-12 w-12" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide">Photo coming</span>
+          </div>
           )}
         </div>
 

@@ -6,6 +6,20 @@
 
 export const toolImageCredits = [
   {
+    tool: "spraying",
+    title: "NRCSAZ02081 - Arizona (445)(NRCS Photo Gallery).jpg",
+    artist: "Photo by Jeff Vanuga, USDA Natural Resources Conservation Service.",
+    license: "Public domain",
+    source: "https://commons.wikimedia.org/wiki/File:NRCSAZ02081_-_Arizona_(445)(NRCS_Photo_Gallery).jpg",
+  },
+  {
+    tool: "transport",
+    title: "Vegetable transportation.jpg",
+    artist: "Summering2018",
+    license: "CC BY-SA 4.0",
+    source: "https://commons.wikimedia.org/wiki/File:Vegetable_transportation.jpg",
+  },
+  {
     tool: "chaff-cutter",
     title: "Chaff-cutter-drum-AgriculturalMachine-geograph.org.uk - 1342604.jpg",
     artist: "Michael Trolove",
