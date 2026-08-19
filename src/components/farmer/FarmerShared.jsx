@@ -23,8 +23,9 @@ import {
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { clearStoredUser } from "../../auth/session";
+import { FINANCING_ENABLED } from "../../config/features";
 
-const sidebarItems = [
+const allSidebarItems = [
   { label: "Dashboard", icon: Home, key: "dashboard", path: "/dashboard" },
   { label: "My Farm", icon: Sprout, key: "my-farm", path: "/my-farm" },
   {
@@ -46,6 +47,10 @@ const sidebarItems = [
   { label: "Financing", icon: Wallet, key: "financing", path: "/financing" },
   { label: "Settings", icon: Settings, key: "settings", path: "/settings" },
 ];
+
+const sidebarItems = allSidebarItems.filter(
+  (item) => FINANCING_ENABLED || item.key !== "financing"
+);
 
 const mobileNavItems = [
   { label: "Home", icon: Home, path: "/dashboard" },
@@ -357,7 +362,9 @@ export function DesktopShell({ current, title, subtitle, children }) {
             <div className="p-4">
               <h3 className="text-base font-semibold text-[#223022]">Upgrade your farming</h3>
               <p className="mt-2 text-sm leading-6 text-[#5F695D]">
-                Get the right tools and financing to grow more.
+                {FINANCING_ENABLED
+                  ? "Get the right tools and financing to grow more."
+                  : "Get the right tools and services to grow more."}
               </p>
               <button className="mt-4 rounded-xl bg-[#DCEAD5] px-4 py-2.5 text-sm font-medium text-[#20562B] hover:bg-[#D2E4CA]">
                 Explore Now
@@ -514,7 +521,9 @@ export function DesktopDashboardShell({ children }) {
             <div className="p-4">
               <h3 className="text-base font-semibold text-[#223022]">Upgrade your farming</h3>
               <p className="mt-2 text-sm leading-6 text-[#5F695D]">
-                Get the right tools and financing to grow more.
+                {FINANCING_ENABLED
+                  ? "Get the right tools and financing to grow more."
+                  : "Get the right tools and services to grow more."}
               </p>
               <button className="mt-4 rounded-xl bg-[#DCEAD5] px-4 py-2.5 text-sm font-medium text-[#20562B] hover:bg-[#D2E4CA]">
                 Explore Now

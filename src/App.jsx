@@ -22,7 +22,7 @@ import {
   canAccessFarmer,
   canAccessResearch,
 } from "./auth/access";
-import { RESEARCH_WORKSPACE_ENABLED } from "./config/features";
+import { FINANCING_ENABLED, RESEARCH_WORKSPACE_ENABLED } from "./config/features";
 import OnboardingFlow from "./onboarding/OnboardingFlow";
 import SettingsPage from "./settings/SettingsPage";
 
@@ -88,7 +88,12 @@ export default function App() {
         <Route path="/weather" element={<WeatherModule />} />
         <Route path="/alerts" element={<AlertsModule />} />
         <Route path="/tools-services" element={<ToolsServicesModule />} />
-        <Route path="/financing" element={<FinancingModule />} />
+        <Route
+          path="/financing"
+          element={
+            FINANCING_ENABLED ? <FinancingModule /> : <Navigate to="/dashboard" replace />
+          }
+        />
         <Route path="/settings" element={<SettingsPage workspace="farmer" />} />
         <Route path="/settings/:panel" element={<SettingsPage workspace="farmer" />} />
       </Route>
