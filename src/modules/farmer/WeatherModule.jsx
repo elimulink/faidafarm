@@ -17,6 +17,7 @@ import {
   SectionTitle,
 } from "../../components/farmer/FarmerShared";
 import TempRangeChart from "../../components/charts/TempRangeChart";
+import WeatherBackdrop from "../../components/weather/WeatherBackdrop";
 import {
   current,
   daily,
@@ -53,8 +54,10 @@ const STATUS = {
 
 function CurrentConditions({ compact = false }) {
   return (
-    <div className="rounded-[26px] border border-[#DCE7F1] bg-gradient-to-b from-[#F3F7FC] to-[#FAFCFE] p-5">
-      <div className="flex items-start justify-between gap-4">
+    <div className="relative overflow-hidden rounded-[26px] border border-[#DCE7F1] bg-gradient-to-b from-[#F3F7FC] to-[#FAFCFE] p-5">
+      <WeatherBackdrop condition={current.condition} windKph={current.windKph} />
+
+      <div className="relative flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#4573B5]">
             {place.name}, {place.county}
@@ -75,7 +78,7 @@ function CurrentConditions({ compact = false }) {
         />
       </div>
 
-      <p className="mt-4 rounded-2xl bg-white/70 px-4 py-3 text-sm font-medium leading-6 text-[#2C4A6B]">
+      <p className="relative mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm font-medium leading-6 text-[#2C4A6B] backdrop-blur-[2px]">
         {getHeadlineAdvice()}
       </p>
     </div>

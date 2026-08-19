@@ -267,3 +267,96 @@ a {
     animation: none;
   }
 }
+
+/* Weather hero backdrop.
+   Deliberately restrained: thin, sparse, low-opacity marks behind the text, the
+   way a stock weather app does it. Everything animates transform or opacity
+   only, so it stays cheap on a low-end phone, and it all stops under
+   prefers-reduced-motion. */
+
+.weather-fx {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.weather-drop {
+  position: absolute;
+  top: -18%;
+  width: 1.5px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, rgba(83, 131, 197, 0), rgba(83, 131, 197, 0.55));
+  animation-name: weather-drop-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes weather-drop-fall {
+  from {
+    transform: translate3d(0, -20%, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(-14px, 132%, 0);
+    opacity: 0;
+  }
+}
+
+.weather-cloud {
+  position: absolute;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 68%);
+  animation-name: weather-cloud-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes weather-cloud-drift {
+  0%,
+  100% {
+    transform: translate3d(-6%, 0, 0);
+  }
+  50% {
+    transform: translate3d(6%, 0, 0);
+  }
+}
+
+.weather-sun {
+  position: absolute;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 199, 102, 0.5) 0%, rgba(255, 199, 102, 0) 70%);
+  animation: weather-sun-breathe 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes weather-sun-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-drop,
+  .weather-cloud,
+  .weather-sun {
+    animation: none;
+  }
+  .weather-drop {
+    opacity: 0.35;
+  }
+}
