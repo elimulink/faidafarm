@@ -13,6 +13,8 @@ import MarketIntelligenceModule from "./modules/farmer/MarketIntelligenceModule"
 import MyFarmModule from "./modules/farmer/MyFarmModule";
 import SellSmartModule from "./modules/farmer/SellSmartModule";
 import SplashScreen from "./modules/farmer/SplashScreen";
+import ListToolPage from "./modules/farmer/ListToolPage";
+import ToolDetailPage from "./modules/farmer/ToolDetailPage";
 import ToolsServicesModule from "./modules/farmer/ToolsServicesModule";
 import WeatherModule from "./modules/farmer/WeatherModule";
 import AccessRestricted from "./components/AccessRestricted";
@@ -115,6 +117,9 @@ export default function App() {
         <Route path="/weather" element={<WeatherModule />} />
         <Route path="/alerts" element={<AlertsModule />} />
         <Route path="/tools-services" element={<ToolsServicesModule />} />
+        {/* `list` is matched before `:toolId` so it is not read as an id. */}
+        <Route path="/tools-services/list" element={<ListToolPage />} />
+        <Route path="/tools-services/:toolId" element={<ToolDetailPage />} />
         <Route
           path="/financing"
           element={

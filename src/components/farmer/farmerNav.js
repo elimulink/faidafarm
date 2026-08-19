@@ -40,8 +40,14 @@ const allSidebarItems = [
   { label: "Settings", icon: Settings, key: "settings", path: "/settings" },
 ];
 
+// Pages reachable from elsewhere rather than from the menu: weather arrives as
+// alerts, and selling advice is opened by the dashboard's "See selling advice"
+// button. Their routes stay live; only the nav entries go.
+const OFF_MENU_KEYS = new Set(["weather", "sell-smart"]);
+
 export const sidebarItems = allSidebarItems.filter(
-  (item) => FINANCING_ENABLED || item.key !== "financing"
+  (item) =>
+    !OFF_MENU_KEYS.has(item.key) && (FINANCING_ENABLED || item.key !== "financing")
 );
 
 export const mobileNavItems = [
