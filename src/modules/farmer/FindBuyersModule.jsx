@@ -18,7 +18,10 @@ import {
   MobileCard,
   SectionTitle,
 } from "../../components/farmer/FarmerShared";
+import NetPriceBreakdown from "../../components/farmer/NetPriceBreakdown";
+import { breakEvenKg, estimateNet } from "../../data/transportData";
 import {
+  BUYER_CHANNELS,
   MARKET_REFERENCE_PRICE,
   buyerCounties,
   buyerCrops,
@@ -52,12 +55,17 @@ const sortSelectOptions = sortOptions.map((option) => ({
   label: option.label,
 }));
 
+const LOAD_PRESETS = [500, 1000, 3000, 7000];
+
 function useBuyerFilters() {
   const [query, setQuery] = useState("");
   const [crop, setCrop] = useState("all");
   const [county, setCounty] = useState("all");
+  const [channel, setChannel] = useState("all");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [sortBy, setSortBy] = useState("match");
+  const [quantityKg, setQuantityKg] = useState(1000);
+  // Default to what the farmer keeps, not what they are offered.
+  const [sortBy, setSortBy] = useState("net");
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -80,6 +88,10 @@ function useBuyerFilters() {
         return false;
       }
 
+      if (channel !== "all" && buyer.channel !== channel) {
+        return false;
+      }
+
       if (verifiedOnly && buyer.verification !== "verified") {
         return false;
       }
@@ -87,35 +99,44 @@ function useBuyerFilters() {
       return true;
     });
 
+    const netOf = (buyer) => estimateNet({ buyer, quantityKg }).netPerKg;
+
     const sorters = {
+      net: (a, b) => netOf(b) - netOf(a),
       match: (a, b) => getMatchScore(b) - getMatchScore(a),
       price: (a, b) => b.offerPerKg - a.offerPerKg,
       distance: (a, b) => a.distanceKm - b.distanceKm,
       rating: (a, b) => b.rating - a.rating,
     };
 
-    return matched.sort(sorters[sortBy] ?? sorters.match);
-  }, [query, crop, county, verifiedOnly, sortBy]);
+    return matched.sort(sorters[sortBy] ?? sorters.net);
+  }, [query, crop, county, channel, verifiedOnly, sortBy, quantityKg]);
 
   function reset() {
     setQuery("");
     setCrop("all");
     setCounty("all");
+    setChannel("all");
     setVerifiedOnly(false);
-    setSortBy("match");
+    setSortBy("net");
   }
 
-  const isFiltered = Boolean(query.trim()) || crop !== "all" || county !== "all" || verifiedOnly;
+  const isFiltered =
+    Boolean(query.trim()) || crop !== "all" || county !== "all" || channel !== "all" || verifiedOnly;
 
   return {
+    channel,
     county,
     crop,
     isFiltered,
+    quantityKg,
     query,
     reset,
     results,
+    setChannel,
     setCounty,
     setCrop,
+    setQuantityKg,
     setQuery,
     setSortBy,
     setVerifiedOnly,
@@ -149,16 +170,138 @@ function MatchScore({ score }) {
   );
 }
 
-function PriceBlock({ buyer }) {
+function PriceBlock({ buyer, net }) {
   const premium = getPricePremium(buyer);
   const tone = premium > 0 ? "text-[#2F8F46]" : premium < 0 ? "text-[#C2542F]" : "text-[#667164]";
 
+  // What lands in the farmer's pocket leads; the offer is context for it.
   return (
     <div>
-      <p className="text-xl font-bold text-[#182118]">KES {buyer.offerPerKg}/kg</p>
-      <p className={`text-xs font-semibold ${tone}`}>
-        {premium > 0 ? "+" : ""}
-        {premium}% vs market
+      <p className="text-xl font-bold text-[#166534]">
+        KES {net.netPerKg.toFixed(2)}
+        <span className="text-sm font-semibold text-[#8A958A]">/kg kept</span>
+      </p>
+      <p className="text-xs font-semibold text-[#667164]">
+        Offers {buyer.offerPerKg}/kg ·{" "}
+        <span className={tone}>
+          {premium > 0 ? "+" : ""}
+          {premium}% vs market
+        </span>
+      </p>
+    </div>
+  );
+}
+
+function ChannelBadge({ channel }) {
+  const meta = BUYER_CHANNELS.find((item) => item.id === channel);
+  if (!meta) {
+    return null;
+  }
+
+  const local = channel === "local";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wide ${
+        local ? "bg-[#F1F6EE] text-[#166534]" : "bg-[#EEF3FB] text-[#3A6EA5]"
+      }`}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
+function LoadControl({ value, onChange }) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-[#182118]">How much are you selling?</p>
+      <p className="mt-0.5 text-xs text-[#8A958A]">
+        Transport is shared across the load, so this changes what each buyer is really worth.
+      </p>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        {LOAD_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => onChange(preset)}
+            aria-pressed={value === preset}
+            className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+              value === preset
+                ? "border-[#166534] bg-[#166534] text-white"
+                : "border-[#E4EAE1] bg-white text-[#4C574D]"
+            }`}
+          >
+            {preset >= 1000 ? `${preset / 1000}t` : `${preset} kg`}
+          </button>
+        ))}
+        <label className="flex items-center gap-1.5 rounded-2xl border border-[#E4EAE1] bg-white px-3 py-1.5">
+          <input
+            type="number"
+            min="50"
+            step="50"
+            value={value}
+            onChange={(event) => onChange(Math.max(50, Number(event.target.value) || 0))}
+            aria-label="Load in kilograms"
+            className="w-[74px] bg-transparent text-sm font-semibold text-[#182118] outline-none"
+          />
+          <span className="text-xs font-semibold text-[#8A958A]">kg</span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// The comparison the page exists for: at this load, does hauling to Marikiti
+// actually beat selling at the gate?
+function ChannelVerdict({ quantityKg }) {
+  const withNet = (buyer) => ({ buyer, net: estimateNet({ buyer, quantityKg }) });
+  const best = (channel) =>
+    buyers
+      .filter((buyer) => buyer.channel === channel)
+      .map(withNet)
+      .sort((a, b) => b.net.netPerKg - a.net.netPerKg)[0];
+
+  const local = best("local");
+  const marikiti = best("marikiti");
+
+  if (!local || !marikiti) {
+    return null;
+  }
+
+  const localWins = local.net.netPerKg >= marikiti.net.netPerKg;
+  const gap = Math.abs(local.net.netPerKg - marikiti.net.netPerKg);
+  const breakEven = localWins
+    ? breakEvenKg({ buyer: marikiti.buyer, localNetPerKg: local.net.netPerKg })
+    : null;
+
+  return (
+    <div
+      className={`rounded-[22px] border p-4 ${
+        localWins ? "border-[#E4EBDD] bg-[#F7FBF5]" : "border-[#DCE7F1] bg-[#F3F7FC]"
+      }`}
+    >
+      <p className="text-[15px] font-bold text-[#182118]">
+        {localWins
+          ? `Selling locally keeps more at ${quantityKg.toLocaleString()} kg`
+          : `Marikiti is worth the trip at ${quantityKg.toLocaleString()} kg`}
+      </p>
+      <p className="mt-1.5 text-sm leading-6 text-[#4C574D]">
+        {localWins ? (
+          <>
+            <strong>{local.buyer.name}</strong> keeps you KES {local.net.netPerKg.toFixed(2)}/kg.{" "}
+            <strong>{marikiti.buyer.name}</strong> offers {marikiti.buyer.offerPerKg}/kg, but after
+            transport and market costs you keep {marikiti.net.netPerKg.toFixed(2)} - about{" "}
+            {gap.toFixed(2)}/kg less.
+            {breakEven
+              ? ` It only starts to pay from about ${breakEven.toLocaleString()} kg.`
+              : " At this price gap it does not pay at any load."}
+          </>
+        ) : (
+          <>
+            <strong>{marikiti.buyer.name}</strong> keeps you KES {marikiti.net.netPerKg.toFixed(2)}/kg
+            after transport and market costs, about {gap.toFixed(2)}/kg more than the best local
+            offer. Lorry hire is around KES {marikiti.net.trip.hireKes.toLocaleString()}.
+          </>
+        )}
       </p>
     </div>
   );
@@ -218,7 +361,9 @@ function BuyerFacts({ buyer }) {
   );
 }
 
-function BuyerCard({ buyer }) {
+function BuyerCard({ buyer, quantityKg }) {
+  const net = estimateNet({ buyer, quantityKg });
+
   return (
     <article className="flex flex-col rounded-[24px] border border-[#EEF2EC] p-5">
       <div className="flex items-start justify-between gap-3">
@@ -232,6 +377,7 @@ function BuyerCard({ buyer }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        <ChannelBadge channel={buyer.channel} />
         <VerificationBadge verification={buyer.verification} />
         <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#667164]">
           <Star className="h-3.5 w-3.5 fill-[#E8B93B] text-[#E8B93B]" />
@@ -244,11 +390,13 @@ function BuyerCard({ buyer }) {
       </div>
 
       <div className="mt-4 flex items-end justify-between gap-4 rounded-2xl bg-[#F7F9F6] p-4">
-        <PriceBlock buyer={buyer} />
+        <PriceBlock buyer={buyer} net={net} />
         <p className="text-right text-xs font-medium text-[#667164]">
           {getLastActiveLabel(buyer)}
         </p>
       </div>
+
+      <NetPriceBreakdown buyer={buyer} net={net} quantityKg={quantityKg} />
 
       <p className="mt-3 text-sm leading-6 text-[#4C574D]">
         <span className="font-semibold text-[#166534]">Why this match: </span>
@@ -312,6 +460,30 @@ function VerifiedToggle({ checked, onChange }) {
   );
 }
 
+function ChannelTabs({ value, onChange }) {
+  const options = [{ id: "all", label: "All buyers" }, ...BUYER_CHANNELS];
+
+  return (
+    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onChange(option.id)}
+          aria-pressed={value === option.id}
+          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+            value === option.id
+              ? "border-[#166534] bg-[#166534] text-white"
+              : "border-[#E4EAE1] bg-white text-[#4C574D]"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function EmptyState({ onReset }) {
   return (
     <div className="rounded-[24px] border border-dashed border-[#D8E2D4] bg-[#FAFCF9] px-6 py-12 text-center">
@@ -356,6 +528,12 @@ function DesktopContent() {
             The match score weighs price, distance, reliability, and demand.
           </p>
 
+          <div className="mt-5 space-y-4">
+            <LoadControl value={filters.quantityKg} onChange={filters.setQuantityKg} />
+            <ChannelTabs value={filters.channel} onChange={filters.setChannel} />
+            <ChannelVerdict quantityKg={filters.quantityKg} />
+          </div>
+
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <SearchField
               value={filters.query}
@@ -397,7 +575,7 @@ function DesktopContent() {
             {filters.results.length ? (
               <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
                 {filters.results.map((buyer) => (
-                  <BuyerCard key={buyer.id} buyer={buyer} />
+                  <BuyerCard key={buyer.id} buyer={buyer} quantityKg={filters.quantityKg} />
                 ))}
               </div>
             ) : (
@@ -410,7 +588,9 @@ function DesktopContent() {
   );
 }
 
-function MobileBuyerCard({ buyer }) {
+function MobileBuyerCard({ buyer, quantityKg }) {
+  const net = estimateNet({ buyer, quantityKg });
+
   return (
     <MobileCard>
       <div className="flex items-start justify-between gap-3">
@@ -424,6 +604,7 @@ function MobileBuyerCard({ buyer }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        <ChannelBadge channel={buyer.channel} />
         <VerificationBadge verification={buyer.verification} />
         <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#667164]">
           <Star className="h-3.5 w-3.5 fill-[#E8B93B] text-[#E8B93B]" />
@@ -432,9 +613,11 @@ function MobileBuyerCard({ buyer }) {
       </div>
 
       <div className="mt-3 flex items-end justify-between gap-3 rounded-2xl bg-[#F7F9F6] p-3">
-        <PriceBlock buyer={buyer} />
+        <PriceBlock buyer={buyer} net={net} />
         <p className="text-right text-xs font-medium text-[#667164]">{buyer.demand} demand</p>
       </div>
+
+      <NetPriceBreakdown buyer={buyer} net={net} quantityKg={quantityKg} />
 
       <p className="mt-3 text-sm leading-6 text-[#4C574D]">{getMatchReason(buyer)}</p>
 
@@ -462,6 +645,10 @@ function MobileContent() {
 
   return (
     <div className="space-y-4">
+      <LoadControl value={filters.quantityKg} onChange={filters.setQuantityKg} />
+      <ChannelTabs value={filters.channel} onChange={filters.setChannel} />
+      <ChannelVerdict quantityKg={filters.quantityKg} />
+
       <div className="flex items-center gap-2">
         <SearchField
           value={filters.query}
@@ -512,7 +699,9 @@ function MobileContent() {
       </p>
 
       {filters.results.length ? (
-        filters.results.map((buyer) => <MobileBuyerCard key={buyer.id} buyer={buyer} />)
+        filters.results.map((buyer) => (
+          <MobileBuyerCard key={buyer.id} buyer={buyer} quantityKg={filters.quantityKg} />
+        ))
       ) : (
         <EmptyState onReset={filters.reset} />
       )}
