@@ -115,3 +115,10 @@ export function saveReadAlerts(ids = []) {
     // Losing read state is not worth breaking the page over.
   }
 }
+
+// Unread count for the header bell. Read at render rather than stored, so it
+// always matches what the Alerts page shows.
+export function getUnreadAlertCount() {
+  const read = loadReadAlerts();
+  return alerts.filter((alert) => !read.includes(alert.id)).length;
+}

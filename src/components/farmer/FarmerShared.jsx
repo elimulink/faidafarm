@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ArrowRight,
   Bell,
   ChevronDown,
   CloudRain,
@@ -25,6 +26,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { clearStoredUser } from "../../auth/session";
 import { FINANCING_ENABLED } from "../../config/features";
 import { mobileNavItems, sidebarItems } from "./farmerNav";
+import { getUnreadAlertCount } from "../../data/alertsData";
 
 
 function cn(...classes) {
@@ -240,6 +242,26 @@ function FarmerMobileMenu({ isOpen, onClose }) {
   );
 }
 
+function NotificationBell() {
+  const unread = getUnreadAlertCount();
+
+  return (
+    <Link
+      to="/alerts"
+      aria-label={unread ? `Alerts, ${unread} unread` : "Alerts"}
+      title="Alerts"
+      className="relative rounded-full border border-[#DDEBDD] bg-white p-2 transition hover:bg-[#F4F7F2]"
+    >
+      <Bell className="h-4 w-4 text-[#2B342C]" />
+      {unread ? (
+        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
 export function AppShell({
   current = "dashboard",
   title = "Dashboard",
@@ -333,9 +355,13 @@ export function DesktopShell({ current, title, subtitle, children }) {
                   ? "Get the right tools and financing to grow more."
                   : "Get the right tools and services to grow more."}
               </p>
-              <button className="mt-4 rounded-xl bg-[#DCEAD5] px-4 py-2.5 text-sm font-medium text-[#20562B] hover:bg-[#D2E4CA]">
-                Explore Now
-              </button>
+              <Link
+                to="/tools-services"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#DCEAD5] px-4 py-2.5 text-sm font-medium text-[#20562B] transition hover:bg-[#D2E4CA]"
+              >
+                Explore tools
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
             <div className="flex items-end justify-end px-4 pb-4">
               <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#DCEAD5]">
@@ -364,16 +390,7 @@ export function DesktopShell({ current, title, subtitle, children }) {
               Feedback
             </button>
 
-            <button
-              type="button"
-              className="relative rounded-full border border-[#DDEBDD] bg-white p-2 transition hover:bg-[#F4F7F2]"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4 text-[#2B342C]" />
-              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                3
-              </span>
-            </button>
+            <NotificationBell />
 
             <DesktopProfileMenu />
           </div>
@@ -403,16 +420,7 @@ export function DashboardHeader() {
           Feedback
         </button>
 
-        <button
-          type="button"
-          className="relative rounded-full border border-[#DDEBDD] bg-white p-2 transition hover:bg-[#F4F7F2]"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4 text-[#2B342C]" />
-          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            3
-          </span>
-        </button>
+        <NotificationBell />
 
         <DesktopProfileMenu />
       </div>
@@ -492,9 +500,13 @@ export function DesktopDashboardShell({ children }) {
                   ? "Get the right tools and financing to grow more."
                   : "Get the right tools and services to grow more."}
               </p>
-              <button className="mt-4 rounded-xl bg-[#DCEAD5] px-4 py-2.5 text-sm font-medium text-[#20562B] hover:bg-[#D2E4CA]">
-                Explore Now
-              </button>
+              <Link
+                to="/tools-services"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#DCEAD5] px-4 py-2.5 text-sm font-medium text-[#20562B] transition hover:bg-[#D2E4CA]"
+              >
+                Explore tools
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
             <div className="flex items-end justify-end px-4 pb-4">
               <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#DCEAD5]">
