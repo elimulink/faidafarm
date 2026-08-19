@@ -46,7 +46,11 @@ export default function NetPriceBreakdown({ buyer, net, quantityKg }) {
         <div className="mt-2 rounded-2xl bg-[#F7F9F6] px-3 py-2.5">
           <Row label={`Offer for ${quantityKg.toLocaleString()} kg`} value={`${buyer.offerPerKg.toFixed(2)}/kg`} />
           <Row
-            label={`Transport (${net.trip.vehicle?.label}, ${net.trip.roundTripKm} km round trip)`}
+            label={
+              net.mode === "shared"
+                ? `Transport (${net.shared.bags} bags on shared transport, KES ${net.shared.perBagKes}/bag)`
+                : `Transport (${net.trip.vehicle?.label} hired, ${net.trip.roundTripKm} km round trip)`
+            }
             value={`-${net.transportPerKg.toFixed(2)}/kg`}
             tone="text-[#C2542F]"
           />
@@ -65,7 +69,9 @@ export default function NetPriceBreakdown({ buyer, net, quantityKg }) {
           </div>
 
           <p className="mt-2 text-[10.5px] leading-4 text-[#8A958A]">
-            Lorry hire estimated at KES {net.trip.hireKes.toLocaleString()} for the round trip.
+            {net.mode === "shared"
+              ? `Assumes sending sacks on transport already going that way, about KES ${net.shared.perBagKes} a bag. Rates are negotiated and vary by route.`
+              : `Lorry hire estimated at KES ${net.trip.hireKes.toLocaleString()} for the round trip.`}{" "}
             Your own day is not counted. Correct these figures if your costs differ.
           </p>
         </div>
