@@ -4,6 +4,8 @@
 // plus current offers per market. Dates are generated relative to today so the
 // chart always reads as "the last 30 days" rather than a frozen window.
 
+import { produce, unitOf } from "./produceCatalogue";
+
 const NDENGU_SERIES = [
   68, 67, 69, 70, 69, 71, 72, 71, 70, 69, 68, 70, 71, 73, 72,
   71, 70, 71, 72, 71, 71, 72, 74, 75, 76, 77, 76, 78, 79, 80,
@@ -21,6 +23,38 @@ function datedSeries(values) {
 }
 
 export const priceHistory = datedSeries(NDENGU_SERIES);
+
+// The series above is ndengu. Showing it under a maize farmer's crop name was
+// simply wrong - maize trades near 45/kg, not 80 - so the shape is reused but
+// rescaled to whatever the crop actually fetches.
+export function getPriceSeriesForCrop(cropName) {
+  const item = produce.find(
+    (entry) =>
+      entry.name.toLowerCase() === String(cropName || "").toLowerCase() ||
+      entry.aliases.some((alias) => alias.toLowerCase() === String(cropName || "").toLowerCase())
+  );
+
+  if (!item) {
+    return { series: priceHistory, unit: "KES/kg", perUnit: "kg" };
+  }
+
+  const unit = unitOf(item);
+  const [low, high] = item.farmGate;
+  const base = NDENGU_SERIES;
+  const baseLow = Math.min(...base);
+  const baseHigh = Math.max(...base);
+  const span = Math.max(1, baseHigh - baseLow);
+
+  const scaled = base.map((value) =>
+    Math.round(low + ((value - baseLow) / span) * (high - low))
+  );
+
+  return {
+    series: datedSeries(scaled),
+    unit: `KES/${unit.label}`,
+    perUnit: unit.label,
+  };
+}
 
 export const PRICE_UNIT = "KES/kg";
 
@@ -46,12 +80,14 @@ export function getPriceStats(series = priceHistory, windowDays = 7) {
   };
 }
 
+// Kept in step with findBuyersData: the same market cannot pay 92 on one page
+// and 86 on another.
 export const markets = [
-  { id: "nairobi", name: "Nairobi", price: 92, demand: "High", distanceKm: 172 },
-  { id: "machakos", name: "Machakos", price: 90, demand: "High", distanceKm: 96 },
-  { id: "kitui", name: "Kitui", price: 88, demand: "Medium", distanceKm: 8 },
-  { id: "mwingi", name: "Mwingi", price: 85, demand: "High", distanceKm: 42 },
-  { id: "kibwezi", name: "Kibwezi", price: 83, demand: "Low", distanceKm: 74 },
+  { id: "nairobi", name: "Nairobi", price: 86, demand: "High", distanceKm: 172 },
+  { id: "marikiti", name: "Marikiti", price: 85, demand: "High", distanceKm: 180 },
+  { id: "machakos", name: "Machakos", price: 84, demand: "High", distanceKm: 96 },
+  { id: "mwingi", name: "Mwingi", price: 83, demand: "High", distanceKm: 42 },
+  { id: "kitui", name: "Kitui", price: 82, demand: "Medium", distanceKm: 8 },
 ];
 
 // One sentence saying what the farmer should take from the numbers. Derived,

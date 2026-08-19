@@ -1,21 +1,18 @@
 import { useMemo, useState } from "react";
-import { Info, TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 import {
   ActionButton,
   AppShell,
   Card,
-  MobileCard,
   SectionTitle,
 } from "../../components/farmer/FarmerShared";
 import MarketComparison from "../../components/charts/MarketComparison";
 import PriceTrendChart from "../../components/charts/PriceTrendChart";
 import ProducePrices from "../../components/farmer/ProducePrices";
 import {
-  PRICE_UNIT,
-  getMarketInsight,
+  getPriceSeriesForCrop,
   getPriceStats,
   markets,
-  priceHistory,
 } from "../../data/marketData";
 import { farmOverview } from "../../data/farmerDashboardData";
 import { getPrimaryCropName } from "../../farm/cropStorage";
@@ -27,14 +24,15 @@ const RANGES = [
 ];
 
 function useMarket(rangeDays) {
+  const crop = getPrimaryCropName(farmOverview.cropName);
+
   return useMemo(() => {
-    const series = priceHistory.slice(-rangeDays);
-    const stats = getPriceStats(priceHistory, rangeDays);
-    return { series, stats, insight: getMarketInsight(stats) };
-  }, [rangeDays]);
+    const { series: full, unit } = getPriceSeriesForCrop(crop);
+    return { series: full.slice(-rangeDays), stats: getPriceStats(full, rangeDays), unit, crop };
+  }, [crop, rangeDays]);
 }
 
-function PriceHeadline({ stats, crop, compact = false }) {
+function PriceHeadline({ stats, crop, unit, compact = false }) {
   const Trend = stats.rising ? TrendingUp : TrendingDown;
   const tone = stats.rising ? "text-[#2F8F46] bg-[#EEF7E8]" : "text-[#C2542F] bg-[#FBEEE9]";
 
@@ -48,7 +46,7 @@ function PriceHeadline({ stats, crop, compact = false }) {
           className={`font-bold tracking-tight text-[#111711] ${compact ? "text-[34px]" : "text-[46px]"}`}
         >
           KES {stats.current}
-          <span className="ml-1 text-base font-semibold text-[#8A958A]">/kg</span>
+          <span className="ml-1 text-base font-semibold text-[#8A958A]">{unit}</span>
         </span>
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold ${tone}`}
@@ -87,22 +85,6 @@ function RangeTabs({ value, onChange }) {
   );
 }
 
-function InsightCard({ insight }) {
-  return (
-    <div className="rounded-[22px] border border-[#E4EBDD] bg-[#F7FBF5] p-4">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-[#2F8F46]">
-          <Info size={16} />
-        </span>
-        <div>
-          <p className="text-[15px] font-bold text-[#20562B]">{insight.headline}</p>
-          <p className="mt-1 text-sm leading-6 text-[#4C574D]">{insight.detail}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SampleDataNote() {
   return (
     <p className="mt-3 text-[11px] text-[#A0AA9E]">
@@ -113,7 +95,7 @@ function SampleDataNote() {
 
 function DesktopContent() {
   const [rangeDays, setRangeDays] = useState(7);
-  const { series, stats, insight } = useMarket(rangeDays);
+  const { series, stats, unit } = useMarket(rangeDays);
   const crop = getPrimaryCropName(farmOverview.cropName);
 
   return (
@@ -121,17 +103,14 @@ function DesktopContent() {
       <div className="col-span-12 xl:col-span-8">
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <PriceHeadline stats={stats} crop={crop} />
+            <PriceHeadline stats={stats} crop={crop} unit={unit} />
             <RangeTabs value={rangeDays} onChange={setRangeDays} />
           </div>
 
           <div className="mt-5">
-            <PriceTrendChart series={series} unit={PRICE_UNIT} height={220} label={`${crop} price`} />
+            <PriceTrendChart series={series} unit={unit} height={220} label={`${crop} price`} />
           </div>
 
-          <div className="mt-5">
-            <InsightCard insight={insight} />
-          </div>
 
           <div className="mt-5">
             <ActionButton to="/sell-smart">See what this means for selling</ActionButton>
@@ -159,7 +138,7 @@ function DesktopContent() {
             Today&apos;s offer per market, with distance from your farm.
           </p>
           <div className="mt-5">
-            <MarketComparison markets={markets} unit={PRICE_UNIT} />
+            <MarketComparison markets={markets} unit={unit} />
           </div>
         </Card>
       </div>
@@ -167,45 +146,47 @@ function DesktopContent() {
   );
 }
 
+function MobileSection({ title, subtitle, children }) {
+  return (
+    <section className="pt-7 first:pt-2">
+      {title ? (
+        <h3 className="text-sm font-bold uppercase tracking-wide text-[#8A958A]">{title}</h3>
+      ) : null}
+      {subtitle ? <p className="mt-1 text-sm text-[#667164]">{subtitle}</p> : null}
+      <div className={title || subtitle ? "mt-3" : ""}>{children}</div>
+    </section>
+  );
+}
+
 function MobileContent() {
   const [rangeDays, setRangeDays] = useState(7);
-  const { series, stats, insight } = useMarket(rangeDays);
-  const crop = getPrimaryCropName(farmOverview.cropName);
+  const { series, stats, unit, crop } = useMarket(rangeDays);
 
+  // Plain sections rather than MobileCard: that component is a bordered card,
+  // so wrapping each block in one drew a box inside a box down the page.
   return (
-    <div className="space-y-4">
-      <MobileCard>
-        <PriceHeadline stats={stats} crop={crop} compact />
+    <div className="pb-8">
+      <MobileSection>
+        <PriceHeadline stats={stats} crop={crop} unit={unit} compact />
         <div className="mt-4">
           <RangeTabs value={rangeDays} onChange={setRangeDays} />
         </div>
         <div className="mt-3">
-          <PriceTrendChart series={series} unit={PRICE_UNIT} height={180} label={`${crop} price`} />
+          <PriceTrendChart series={series} unit={unit} height={180} label={`${crop} price`} />
         </div>
         <SampleDataNote />
-      </MobileCard>
+      </MobileSection>
 
-      <MobileCard>
-        <InsightCard insight={insight} />
-      </MobileCard>
+      <MobileSection
+        title="What produce sells for"
+        subtitle="Market price, in the unit each thing is sold in."
+      >
+        <ProducePrices compact />
+      </MobileSection>
 
-      <MobileCard>
-        <h3 className="text-lg font-bold text-[#1F2B1F]">What produce sells for</h3>
-        <p className="mt-1 text-sm text-[#667164]">
-          Farm gate against market price, in the unit each thing is sold in.
-        </p>
-        <div className="mt-4">
-          <ProducePrices compact />
-        </div>
-      </MobileCard>
-
-      <MobileCard>
-        <h3 className="text-lg font-bold text-[#1F2B1F]">What each market pays</h3>
-        <p className="mt-1 text-sm text-[#667164]">Today&apos;s offer and distance from your farm.</p>
-        <div className="mt-4">
-          <MarketComparison markets={markets} unit={PRICE_UNIT} />
-        </div>
-      </MobileCard>
+      <MobileSection title="What each market pays" subtitle="Today's offer and distance from you.">
+        <MarketComparison markets={markets} unit={unit} />
+      </MobileSection>
     </div>
   );
 }
