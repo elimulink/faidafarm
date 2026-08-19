@@ -24,42 +24,8 @@ import {
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { clearStoredUser } from "../../auth/session";
 import { FINANCING_ENABLED } from "../../config/features";
-import AssistantDock from "../../assistant/AssistantDock";
+import { mobileNavItems, sidebarItems } from "./farmerNav";
 
-const allSidebarItems = [
-  { label: "Dashboard", icon: Home, key: "dashboard", path: "/dashboard" },
-  { label: "My Farm", icon: Sprout, key: "my-farm", path: "/my-farm" },
-  {
-    label: "Market Intelligence",
-    icon: LineChart,
-    key: "market-intelligence",
-    path: "/market-intelligence",
-  },
-  { label: "Sell Smart", icon: Handshake, key: "sell-smart", path: "/sell-smart" },
-  { label: "Find Buyers", icon: Users, key: "find-buyers", path: "/find-buyers" },
-  { label: "Weather", icon: CloudRain, key: "weather", path: "/weather" },
-  { label: "Alerts", icon: Bell, key: "alerts", path: "/alerts" },
-  {
-    label: "Tools & Services",
-    icon: Wrench,
-    key: "tools-services",
-    path: "/tools-services",
-  },
-  { label: "Financing", icon: Wallet, key: "financing", path: "/financing" },
-  { label: "Settings", icon: Settings, key: "settings", path: "/settings" },
-];
-
-const sidebarItems = allSidebarItems.filter(
-  (item) => FINANCING_ENABLED || item.key !== "financing"
-);
-
-const mobileNavItems = [
-  { label: "Home", icon: Home, path: "/dashboard" },
-  { label: "My Farm", icon: Sprout, path: "/my-farm" },
-  { label: "Market", icon: LineChart, path: "/market-intelligence" },
-  { label: "Alerts", icon: Bell, path: "/alerts" },
-  { label: "Settings", icon: Settings, path: "/settings" },
-];
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -282,11 +248,6 @@ export function AppShell({
   desktopContent,
   mobileContent,
 }) {
-  // The assistant rides along with every farmer page so a question can be asked
-  // about the screen the farmer is already looking at.
-  const pageLabel =
-    allSidebarItems.find((item) => item.key === current)?.label || title;
-
   return (
     <div className="min-h-screen bg-white">
       <DesktopShell current={current} title={title} subtitle={subtitle}>
@@ -295,7 +256,6 @@ export function AppShell({
       <MobileShell current={current} title={title} subtitle={mobileSubtitle}>
         {mobileContent}
       </MobileShell>
-      <AssistantDock page={current} pageLabel={pageLabel} />
     </div>
   );
 }

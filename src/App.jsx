@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import AlertsModule from "./modules/farmer/AlertsModule";
 import FindBuyersModule from "./modules/farmer/FindBuyersModule";
 import DashboardModule from "./modules/farmer/DashboardModule";
@@ -16,6 +16,8 @@ import SplashScreen from "./modules/farmer/SplashScreen";
 import ToolsServicesModule from "./modules/farmer/ToolsServicesModule";
 import WeatherModule from "./modules/farmer/WeatherModule";
 import AccessRestricted from "./components/AccessRestricted";
+import AssistantDock from "./assistant/AssistantDock";
+import { getFarmerPageMeta } from "./components/farmer/farmerNav";
 import { getStoredUser } from "./auth/session";
 import {
   canAccessAdminAnalytics,
@@ -35,12 +37,23 @@ const ResearchApp = import.meta.env.DEV
 
 function FarmerProtectedRoute() {
   const user = getStoredUser();
+  const location = useLocation();
 
   if (!canAccessFarmer(user)) {
     return <AccessRestricted />;
   }
 
-  return <Outlet />;
+  // The dock is mounted here rather than inside AppShell: this wrapper survives
+  // navigation between farmer pages, so the panel stays open and an in-flight
+  // answer keeps streaming instead of being remounted and aborted.
+  const page = getFarmerPageMeta(location.pathname);
+
+  return (
+    <>
+      <Outlet />
+      <AssistantDock page={page.key} pageLabel={page.label} />
+    </>
+  );
 }
 
 function RootRedirect() {
