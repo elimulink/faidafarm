@@ -9,6 +9,7 @@ import {
 } from "../../components/farmer/FarmerShared";
 import MarketComparison from "../../components/charts/MarketComparison";
 import PriceTrendChart from "../../components/charts/PriceTrendChart";
+import ProducePrices from "../../components/farmer/ProducePrices";
 import {
   PRICE_UNIT,
   getMarketInsight,
@@ -139,6 +140,18 @@ function DesktopContent() {
         </Card>
       </div>
 
+      <div className="col-span-12">
+        <Card>
+          <SectionTitle>What produce sells for</SectionTitle>
+          <p className="mt-1 text-sm text-[#667164]">
+            Farm gate against market price, in the unit each thing is actually sold in.
+          </p>
+          <div className="mt-4">
+            <ProducePrices />
+          </div>
+        </Card>
+      </div>
+
       <div className="col-span-12 xl:col-span-4">
         <Card>
           <SectionTitle>What each market pays</SectionTitle>
@@ -174,6 +187,16 @@ function MobileContent() {
 
       <MobileCard>
         <InsightCard insight={insight} />
+      </MobileCard>
+
+      <MobileCard>
+        <h3 className="text-lg font-bold text-[#1F2B1F]">What produce sells for</h3>
+        <p className="mt-1 text-sm text-[#667164]">
+          Farm gate against market price, in the unit each thing is sold in.
+        </p>
+        <div className="mt-4">
+          <ProducePrices compact />
+        </div>
       </MobileCard>
 
       <MobileCard>
