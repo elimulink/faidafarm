@@ -16,6 +16,7 @@ import {
   Sprout,
   Tractor,
   User,
+  Users,
   Wallet,
   Wrench,
   X,
@@ -33,7 +34,7 @@ const sidebarItems = [
     path: "/market-intelligence",
   },
   { label: "Sell Smart", icon: Handshake, key: "sell-smart", path: "/sell-smart" },
-  { label: "Buyers", icon: User, key: "buyers", path: "/buyers" },
+  { label: "Find Buyers", icon: Users, key: "find-buyers", path: "/find-buyers" },
   { label: "Weather", icon: CloudRain, key: "weather", path: "/weather" },
   { label: "Alerts", icon: Bell, key: "alerts", path: "/alerts" },
   {

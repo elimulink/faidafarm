@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import AlertsModule from "./modules/farmer/AlertsModule";
-import BuyersModule from "./modules/farmer/BuyersModule";
+import FindBuyersModule from "./modules/farmer/FindBuyersModule";
 import DashboardModule from "./modules/farmer/DashboardModule";
 import FarmerForgotPasswordPage from "./modules/farmer/FarmerForgotPasswordPage";
 import FarmerLoginPage from "./modules/farmer/FarmerLoginPage";
@@ -83,7 +83,8 @@ export default function App() {
         <Route path="/my-farm" element={<MyFarmModule />} />
         <Route path="/market-intelligence" element={<MarketIntelligenceModule />} />
         <Route path="/sell-smart" element={<SellSmartModule />} />
-        <Route path="/buyers" element={<BuyersModule />} />
+        <Route path="/find-buyers" element={<FindBuyersModule />} />
+        <Route path="/buyers" element={<Navigate to="/find-buyers" replace />} />
         <Route path="/weather" element={<WeatherModule />} />
         <Route path="/alerts" element={<AlertsModule />} />
         <Route path="/tools-services" element={<ToolsServicesModule />} />

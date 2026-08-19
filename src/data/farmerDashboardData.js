@@ -98,33 +98,6 @@ export const farmCrops = [
   },
 ];
 
-export const buyers = [
-  {
-    id: 1,
-    name: "Nairobi Fresh Market",
-    location: "Nairobi",
-    offer: "KES 92/kg",
-    demand: "High",
-    reliability: "Verified",
-  },
-  {
-    id: 2,
-    name: "Kitui Grain Traders",
-    location: "Kitui",
-    offer: "KES 88/kg",
-    demand: "Medium",
-    reliability: "Verified",
-  },
-  {
-    id: 3,
-    name: "Eastern Supplies Ltd",
-    location: "Machakos",
-    offer: "KES 90/kg",
-    demand: "High",
-    reliability: "Reviewed",
-  },
-];
-
 export const weatherCards = [
   {
     id: 1,

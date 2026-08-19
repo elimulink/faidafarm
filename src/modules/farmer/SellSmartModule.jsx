@@ -35,7 +35,7 @@ function DesktopContent() {
             </div>
           </div>
           <div className="mt-6">
-            <ActionButton to="/buyers">View Detailed Analysis</ActionButton>
+            <ActionButton to="/find-buyers">View Detailed Analysis</ActionButton>
           </div>
         </Card>
       </div>
