@@ -1,3 +1,5 @@
+import { RESEARCH_WORKSPACE_ENABLED } from "../config/features";
+
 const STORAGE_KEY = "faidafarm_user";
 
 function normalizeText(value) {
@@ -16,6 +18,12 @@ function buildDisplayName(identifier, fallback) {
 }
 
 export function inferRoleFromLogin({ loginMode, email, phone }) {
+  // Research roles only lead somewhere on localhost. In a production build the
+  // farmer workspace is the only one mounted, so everyone signs in as a farmer.
+  if (!RESEARCH_WORKSPACE_ENABLED) {
+    return "farmer";
+  }
+
   const source = normalizeText(loginMode === "email" ? email : phone);
 
   if (source.includes("admin")) {
@@ -55,12 +63,13 @@ export function createMockUser({
   organization,
 }) {
   const inferredRole = inferRoleFromLogin({ loginMode, email, phone });
+  const requestedRole = RESEARCH_WORKSPACE_ENABLED ? preferredRole : "farmer";
   const role =
-    preferredRole === "research"
+    requestedRole === "research"
       ? inferredRole === "farmer"
         ? "researcher"
         : inferredRole
-      : preferredRole || inferredRole;
+      : requestedRole || inferredRole;
   const identifier = loginMode === "email" ? email : phone;
 
   return {

@@ -11,6 +11,7 @@ import {
   User,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { createMockUser, setStoredUser } from "../../auth/session";
 
 export default function FarmerSignupPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +26,18 @@ export default function FarmerSignupPage() {
   function handleSubmit(event) {
     event.preventDefault();
 
-    // Placeholder signup flow until backend auth is connected.
+    // Placeholder signup flow until backend auth is connected. A user has to be
+    // stored or the farmer routes bounce straight back to onboarding.
+    setStoredUser(
+      createMockUser({
+        loginMode: email ? "email" : "phone",
+        email,
+        phone,
+        preferredRole: "farmer",
+        name: fullName,
+        county: location,
+      })
+    );
     navigate("/dashboard");
   }
 

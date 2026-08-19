@@ -22,7 +22,7 @@ import {
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { clearStoredUser } from "../../auth/session";
-import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../researchAccess";
+import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../../auth/access";
 
 function BrandMark({ compact = false }) {
   return (

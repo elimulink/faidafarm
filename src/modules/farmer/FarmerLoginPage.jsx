@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createMockUser, setStoredUser } from "../../auth/session";
+import { RESEARCH_WORKSPACE_ENABLED } from "../../config/features";
 
 export default function FarmerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +28,12 @@ export default function FarmerLoginPage() {
 
   function handleSubmit(event) {
     event.preventDefault();
+
+    if (!RESEARCH_WORKSPACE_ENABLED) {
+      handleWorkspaceSelect("farmer");
+      return;
+    }
+
     setShowWorkspaceModal(true);
   }
 
@@ -78,7 +85,7 @@ export default function FarmerLoginPage() {
           showPassword={showPassword}
         />
       </div>
-      {showWorkspaceModal ? (
+      {RESEARCH_WORKSPACE_ENABLED && showWorkspaceModal ? (
         <WorkspacePickerModal
           onChooseFarmer={() => handleWorkspaceSelect("farmer")}
           onChooseResearch={() => handleWorkspaceSelect("researcher")}
@@ -227,8 +234,9 @@ function DesktopLogin({
             </h2>
 
             <p className="mt-4 max-w-[430px] text-[15px] leading-7 text-white/84 xl:text-base xl:leading-7">
-              Access farm records, market intelligence, weather alerts, buyer matching,
-              and FMNR research workflows in one platform.
+              {RESEARCH_WORKSPACE_ENABLED
+                ? "Access farm records, market intelligence, weather alerts, buyer matching, and FMNR research workflows in one platform."
+                : "Access farm records, market intelligence, weather alerts, and verified buyers in one platform."}
             </p>
           </div>
         </div>

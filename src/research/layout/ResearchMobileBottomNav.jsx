@@ -11,7 +11,7 @@ import {
   Utensils,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../researchAccess";
+import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../../auth/access";
 
 const researchItems = [
   { label: "Dashboard", path: "/research", icon: LayoutDashboard },

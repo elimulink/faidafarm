@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createMockUser, setStoredUser } from "../auth/session";
+import { RESEARCH_WORKSPACE_ENABLED } from "../config/features";
 
 const workspaceOptions = [
   {
@@ -46,9 +47,16 @@ const workspaceOptions = [
   },
 ];
 
+// Research workspaces exist on localhost only, so a production build offers
+// the farmer workspace alone and skips the picker step entirely.
+const availableWorkspaces = RESEARCH_WORKSPACE_ENABLED
+  ? workspaceOptions
+  : workspaceOptions.filter((option) => option.role === "farmer");
+const showWorkspaceStep = availableWorkspaces.length > 1;
+
 export default function OnboardingFlow() {
   const [step, setStep] = useState("splash");
-  const [workspace, setWorkspace] = useState(workspaceOptions[0]);
+  const [workspace, setWorkspace] = useState(availableWorkspaces[0]);
   const [authMode, setAuthMode] = useState("signup");
   const [loginMode, setLoginMode] = useState("phone");
   const [form, setForm] = useState({
@@ -70,7 +78,9 @@ export default function OnboardingFlow() {
   }, [step]);
 
   const progress = useMemo(() => {
-    const steps = ["welcome", "workspace", "auth", "profile"];
+    const steps = showWorkspaceStep
+      ? ["welcome", "workspace", "auth", "profile"]
+      : ["welcome", "auth", "profile"];
     const index = Math.max(0, steps.indexOf(step));
     return ((index + 1) / steps.length) * 100;
   }, [step]);
@@ -101,7 +111,7 @@ export default function OnboardingFlow() {
           <img src="/logo.png" alt="FaidaFarm" className="mx-auto h-24 w-24 object-contain" />
           <h1 className="mt-5 text-3xl font-bold text-[#0F1A12]">FaidaFarm</h1>
           <p className="mt-2 text-sm font-medium text-[#2F8F46]">
-            Farm smarter. Research better.
+            {RESEARCH_WORKSPACE_ENABLED ? "Farm smarter. Research better." : "Farm smarter. Earn more."}
           </p>
         </div>
       </main>
@@ -117,7 +127,13 @@ export default function OnboardingFlow() {
             onClick={() =>
               step === "welcome"
                 ? navigate("/login")
-                : setStep(step === "profile" ? "auth" : step === "auth" ? "workspace" : "welcome")
+                : setStep(
+                    step === "profile"
+                      ? "auth"
+                      : step === "auth" && showWorkspaceStep
+                        ? "workspace"
+                        : "welcome"
+                  )
             }
             className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E1E8DE] text-[#233025]"
             aria-label="Go back"
@@ -138,10 +154,10 @@ export default function OnboardingFlow() {
         </div>
 
         {step === "welcome" ? (
-          <WelcomeStep onNext={() => setStep("workspace")} />
+          <WelcomeStep onNext={() => setStep(showWorkspaceStep ? "workspace" : "auth")} />
         ) : null}
 
-        {step === "workspace" ? (
+        {step === "workspace" && showWorkspaceStep ? (
           <WorkspaceStep
             selected={workspace}
             onSelect={setWorkspace}
@@ -185,7 +201,9 @@ function WelcomeStep({ onNext }) {
         Welcome to FaidaFarm
       </h2>
       <p className="mx-auto mt-5 max-w-[360px] text-center text-base leading-7 text-[#667164]">
-        Manage farm records, field forms, and FMNR insights in one place.
+        {RESEARCH_WORKSPACE_ENABLED
+          ? "Manage farm records, field forms, and FMNR insights in one place."
+          : "Manage your farm records, markets, weather, and buyers in one place."}
       </p>
       <button
         type="button"
@@ -207,7 +225,7 @@ function WorkspaceStep({ selected, onSelect, onNext }) {
         Select the area you want to use first. You can change view later.
       </p>
       <div className="mt-8 space-y-3">
-        {workspaceOptions.map((option) => {
+        {availableWorkspaces.map((option) => {
           const Icon = option.icon;
           const isSelected = selected.role === option.role;
           return (

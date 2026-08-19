@@ -25,7 +25,7 @@ import {
 import { useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { clearStoredUser } from "../../auth/session";
-import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../researchAccess";
+import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../../auth/access";
 
 const researchNavItems = [
   { label: "Research Dashboard", path: "/research", icon: LayoutDashboard },

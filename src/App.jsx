@@ -1,4 +1,5 @@
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import AlertsModule from "./modules/farmer/AlertsModule";
 import BuyersModule from "./modules/farmer/BuyersModule";
 import DashboardModule from "./modules/farmer/DashboardModule";
@@ -14,64 +15,29 @@ import SellSmartModule from "./modules/farmer/SellSmartModule";
 import SplashScreen from "./modules/farmer/SplashScreen";
 import ToolsServicesModule from "./modules/farmer/ToolsServicesModule";
 import WeatherModule from "./modules/farmer/WeatherModule";
+import AccessRestricted from "./components/AccessRestricted";
 import { getStoredUser } from "./auth/session";
-import OnboardingFlow from "./onboarding/OnboardingFlow";
-import SettingsPage from "./settings/SettingsPage";
-import ResearchShell from "./research/layout/ResearchShell";
-import ChildNutrition from "./research/pages/ChildNutrition";
-import FieldActivity from "./research/pages/FieldActivity";
-import FMNRPlots from "./research/pages/FMNRPlots";
-import Households from "./research/pages/Households";
-import Reports from "./research/pages/Reports";
-import AdminOverview from "./research/pages/admin/AdminOverview";
-import ChildDietScores from "./research/pages/admin/ChildDietScores";
-import CountyComparison from "./research/pages/admin/CountyComparison";
-import Exports from "./research/pages/admin/Exports";
-import FMNRMap from "./research/pages/admin/FMNRMap";
-import Devices from "./research/pages/field/Devices";
-import Drafts from "./research/pages/field/Drafts";
-import FieldCollectionHome from "./research/pages/field/FieldCollectionHome";
-import FormBuilder from "./research/pages/field/FormBuilder";
-import FormPreview from "./research/pages/field/FormPreview";
-import FormsLibrary from "./research/pages/field/FormsLibrary";
-import Submissions from "./research/pages/field/Submissions";
-import SyncQueue from "./research/pages/field/SyncQueue";
-import ResearchAccessRestricted from "./research/pages/ResearchAccessRestricted";
-import ResearchDashboard from "./research/pages/ResearchDashboard";
-import SyncStatus from "./research/pages/SyncStatus";
 import {
   canAccessAdminAnalytics,
   canAccessFarmer,
   canAccessResearch,
-  canAccessResearchRoute,
-} from "./research/researchAccess";
+} from "./auth/access";
+import { RESEARCH_WORKSPACE_ENABLED } from "./config/features";
+import OnboardingFlow from "./onboarding/OnboardingFlow";
+import SettingsPage from "./settings/SettingsPage";
+
+// Dev-only workspace. `import.meta.env.DEV` is written inline rather than read
+// from config/features so the bundler sees a literal `false` here and drops the
+// dynamic import: in production no research chunk is emitted at all.
+const ResearchApp = import.meta.env.DEV
+  ? lazy(() => import("./research/ResearchApp"))
+  : null;
 
 function FarmerProtectedRoute() {
   const user = getStoredUser();
 
   if (!canAccessFarmer(user)) {
-    return <ResearchAccessRestricted />;
-  }
-
-  return <Outlet />;
-}
-
-function ResearchProtectedRoute() {
-  const user = getStoredUser();
-  const location = useLocation();
-
-  if (!canAccessResearchRoute(user, location.pathname)) {
-    return <ResearchAccessRestricted />;
-  }
-
-  return <ResearchShell user={user} />;
-}
-
-function AdminProtectedRoute() {
-  const user = getStoredUser();
-
-  if (!canAccessAdminAnalytics(user)) {
-    return <ResearchAccessRestricted />;
+    return <AccessRestricted />;
   }
 
   return <Outlet />;
@@ -88,15 +54,17 @@ function RootRedirect() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (canAccessAdminAnalytics(user)) {
-    return <Navigate to="/research/admin" replace />;
+  if (RESEARCH_WORKSPACE_ENABLED) {
+    if (canAccessAdminAnalytics(user)) {
+      return <Navigate to="/research/admin" replace />;
+    }
+
+    if (canAccessResearch(user)) {
+      return <Navigate to="/research" replace />;
+    }
   }
 
-  if (canAccessResearch(user)) {
-    return <Navigate to="/research" replace />;
-  }
-
-  return <ResearchAccessRestricted />;
+  return <AccessRestricted />;
 }
 
 export default function App() {
@@ -123,34 +91,16 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage workspace="farmer" />} />
         <Route path="/settings/:panel" element={<SettingsPage workspace="farmer" />} />
       </Route>
-      <Route path="/research" element={<ResearchProtectedRoute />}>
-        <Route index element={<ResearchDashboard />} />
-        <Route path="households" element={<Households />} />
-        <Route path="fmnr-plots" element={<FMNRPlots />} />
-        <Route path="child-nutrition" element={<ChildNutrition />} />
-        <Route path="field-activity" element={<FieldActivity />} />
-        <Route path="sync-status" element={<SyncStatus />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="settings" element={<SettingsPage workspace="research" />} />
-        <Route path="settings/:panel" element={<SettingsPage workspace="research" />} />
-        <Route path="field">
-          <Route index element={<FieldCollectionHome />} />
-          <Route path="forms" element={<FormsLibrary />} />
-          <Route path="forms/new" element={<FormBuilder />} />
-          <Route path="forms/:formId" element={<FormPreview />} />
-          <Route path="submissions" element={<Submissions />} />
-          <Route path="drafts" element={<Drafts />} />
-          <Route path="devices" element={<Devices />} />
-          <Route path="sync-queue" element={<SyncQueue />} />
-        </Route>
-        <Route path="admin" element={<AdminProtectedRoute />}>
-          <Route index element={<AdminOverview />} />
-          <Route path="fmnr-map" element={<FMNRMap />} />
-          <Route path="diet-scores" element={<ChildDietScores />} />
-          <Route path="county" element={<CountyComparison />} />
-          <Route path="exports" element={<Exports />} />
-        </Route>
-      </Route>
+      {ResearchApp ? (
+        <Route
+          path="/research/*"
+          element={
+            <Suspense fallback={null}>
+              <ResearchApp />
+            </Suspense>
+          }
+        />
+      ) : null}
       <Route path="*" element={<RootRedirect />} />
     </Routes>
   );
