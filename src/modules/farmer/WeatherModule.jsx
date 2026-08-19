@@ -14,7 +14,6 @@ import {
 import {
   AppShell,
   Card,
-  MobileCard,
   SectionTitle,
 } from "../../components/farmer/FarmerShared";
 import TempRangeChart from "../../components/charts/TempRangeChart";
@@ -91,7 +90,7 @@ function HourlyStrip() {
           return (
             <div
               key={index}
-              className="flex w-[74px] shrink-0 flex-col items-center rounded-2xl border border-[#EEF2EC] px-2 py-3"
+              className="flex w-[68px] shrink-0 flex-col items-center rounded-2xl bg-[#F7F9FB] px-2 py-3"
             >
               <span className="text-[11px] font-semibold text-[#8A958A]">
                 {index === 0
@@ -114,36 +113,38 @@ function DailyRows() {
 
   return (
     <ul className="divide-y divide-[#F0F3EE]">
-      {daily.map((day, index) => {
-        return (
-          <li key={index} className="flex items-center gap-3 py-3">
-            <span className="w-[68px] shrink-0 text-sm font-semibold text-[#182118]">
-              {dayLabel(day.date, index)}
-            </span>
-            <ConditionIcon condition={day.condition} className="h-5 w-5 shrink-0 text-[#5383C5]" />
-            <span className="w-[92px] shrink-0 truncate text-sm text-[#667164]">
-              {day.condition}
-            </span>
+      {daily.map((day, index) => (
+        <li
+          key={index}
+          className="grid grid-cols-[minmax(58px,auto)_20px_1fr_auto] items-center gap-x-3 py-3 sm:grid-cols-[76px_20px_96px_1fr_auto]"
+        >
+          <span className="text-sm font-semibold text-[#182118]">{dayLabel(day.date, index)}</span>
 
-            <span className="flex flex-1 items-center gap-2">
-              <span className="h-2 flex-1 overflow-hidden rounded-full bg-[#EEF3F8]">
-                <span
-                  className="block h-full rounded-full bg-[#5383C5]"
-                  style={{ width: `${(day.rainfallMm / maxRain) * 100}%` }}
-                />
-              </span>
-              <span className="w-[52px] shrink-0 text-right text-xs font-semibold text-[#4573B5]">
-                {day.rainfallMm} mm
-              </span>
-            </span>
+          <ConditionIcon condition={day.condition} className="h-5 w-5 text-[#5383C5]" />
 
-            <span className="w-[62px] shrink-0 text-right text-sm">
-              <span className="font-bold text-[#C2542F]">{day.high}&deg;</span>
-              <span className="text-[#8A958A]"> / {day.low}&deg;</span>
+          {/* The icon already carries this on a narrow screen. */}
+          <span className="hidden truncate text-sm text-[#667164] sm:block">{day.condition}</span>
+
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="h-2 min-w-[24px] flex-1 overflow-hidden rounded-full bg-[#EEF3F8]">
+              <span
+                className="block h-full rounded-full bg-[#5383C5]"
+                style={{ width: `${(day.rainfallMm / maxRain) * 100}%` }}
+              />
             </span>
-          </li>
-        );
-      })}
+            <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[#4573B5]">
+              {day.rainfallMm} mm
+            </span>
+          </span>
+
+          {/* whitespace-nowrap plus auto width: this column used to be a fixed
+              62px and clipped "25 / 17" on a 360px screen. */}
+          <span className="shrink-0 whitespace-nowrap text-right text-sm">
+            <span className="font-bold text-[#C2542F]">{day.high}&deg;</span>
+            <span className="text-[#8A958A]">/{day.low}&deg;</span>
+          </span>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -180,11 +181,11 @@ function ConditionTiles() {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">
       {tiles.map((tile) => {
         const Icon = tile.icon;
         return (
-          <div key={tile.label} className="rounded-2xl border border-[#EEF2EC] p-3.5">
+          <div key={tile.label} className="border-t border-[#F0F3EE] pt-3">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#8A958A]">
               <Icon size={13} />
               {tile.label}
@@ -257,48 +258,52 @@ function DesktopContent() {
   );
 }
 
+function MobileSection({ title, children }) {
+  return (
+    <section className="pt-7 first:pt-2">
+      {title ? (
+        <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#8A958A]">{title}</h3>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
 function MobileContent() {
   const advisories = getFarmAdvisories();
 
+  // Deliberately not wrapped in MobileCard: that component is itself a bordered
+  // card, so nesting the tinted panels inside it drew a box within a box. Plain
+  // sections with generous spacing read better and leave the page open.
   return (
-    <div className="space-y-4">
-      <MobileCard>
+    <div className="pb-8">
+      <MobileSection>
         <CurrentConditions compact />
-      </MobileCard>
+      </MobileSection>
 
-      <MobileCard>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-[#8A958A]">Next 12 hours</h3>
-        <div className="mt-3">
-          <HourlyStrip />
-        </div>
-      </MobileCard>
+      <MobileSection title="Next 12 hours">
+        <HourlyStrip />
+      </MobileSection>
 
-      <MobileCard>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-[#8A958A]">Next 7 days</h3>
-        <div className="mt-3">
-          <TempRangeChart days={daily} labelFor={(day, index) => dayLabel(day.date, index)} />
-        </div>
-        <div className="mt-2">
+      <MobileSection title="Next 7 days">
+        <TempRangeChart days={daily} labelFor={(day, index) => dayLabel(day.date, index)} />
+        <div className="mt-2 border-t border-[#F0F3EE]">
           <DailyRows />
         </div>
-      </MobileCard>
+      </MobileSection>
 
-      <MobileCard>
-        <h3 className="text-lg font-bold text-[#1F2B1F]">What this means for your farm</h3>
-        <div className="mt-3 space-y-3">
+      <MobileSection title="What this means for your farm">
+        <div className="space-y-3">
           {advisories.map((item) => (
             <AdvisoryCard key={item.id} item={item} />
           ))}
         </div>
-      </MobileCard>
+      </MobileSection>
 
-      <MobileCard>
-        <h3 className="text-lg font-bold text-[#1F2B1F]">Conditions</h3>
-        <div className="mt-3">
-          <ConditionTiles />
-        </div>
+      <MobileSection title="Conditions">
+        <ConditionTiles />
         <SampleNote />
-      </MobileCard>
+      </MobileSection>
     </div>
   );
 }

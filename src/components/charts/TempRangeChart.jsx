@@ -16,7 +16,7 @@ export default function TempRangeChart({ days = [], labelFor, height = 168 }) {
   }
 
   const width = 340;
-  const pad = { top: 22, right: 16, bottom: 26, left: 16 };
+  const pad = { top: 22, right: 26, bottom: 26, left: 22 };
   const plotH = height - pad.top - pad.bottom;
   const plotW = width - pad.left - pad.right;
 
@@ -90,7 +90,7 @@ export default function TempRangeChart({ days = [], labelFor, height = 168 }) {
             <text
               x={highPoints[index].x}
               y={height - 7}
-              textAnchor="middle"
+              textAnchor={index === 0 ? "start" : index === days.length - 1 ? "end" : "middle"}
               fontSize="9.5"
               fill={AXIS_TEXT}
             >
