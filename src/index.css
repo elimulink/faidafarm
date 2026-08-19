@@ -227,3 +227,43 @@ a {
 .font-black {
   font-weight: 700;
 }
+
+/* Assistant typing indicator, ported from ElimuLink's chat and recoloured. */
+.assistant-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(102, 113, 100, 0.75);
+  animation: assistant-dot-pulse 1.05s infinite ease-in-out;
+}
+
+.assistant-typing-dot-delay-1 {
+  animation-delay: 0.15s;
+}
+
+.assistant-typing-dot-delay-2 {
+  animation-delay: 0.3s;
+}
+
+.assistant-typing-caret {
+  margin-left: 2px;
+  color: rgba(47, 143, 70, 0.95);
+  animation: assistant-blink-caret 1s step-end infinite;
+}
+
+@keyframes assistant-dot-pulse {
+  0%, 80%, 100% { transform: scale(1); opacity: 0.42; }
+  40% { transform: scale(1.18); opacity: 0.95; }
+}
+
+@keyframes assistant-blink-caret {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-typing-dot,
+  .assistant-typing-caret {
+    animation: none;
+  }
+}

@@ -24,6 +24,7 @@ import {
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { clearStoredUser } from "../../auth/session";
 import { FINANCING_ENABLED } from "../../config/features";
+import AssistantDock from "../../assistant/AssistantDock";
 
 const allSidebarItems = [
   { label: "Dashboard", icon: Home, key: "dashboard", path: "/dashboard" },
@@ -281,6 +282,11 @@ export function AppShell({
   desktopContent,
   mobileContent,
 }) {
+  // The assistant rides along with every farmer page so a question can be asked
+  // about the screen the farmer is already looking at.
+  const pageLabel =
+    allSidebarItems.find((item) => item.key === current)?.label || title;
+
   return (
     <div className="min-h-screen bg-white">
       <DesktopShell current={current} title={title} subtitle={subtitle}>
@@ -289,6 +295,7 @@ export function AppShell({
       <MobileShell current={current} title={title} subtitle={mobileSubtitle}>
         {mobileContent}
       </MobileShell>
+      <AssistantDock page={current} pageLabel={pageLabel} />
     </div>
   );
 }
