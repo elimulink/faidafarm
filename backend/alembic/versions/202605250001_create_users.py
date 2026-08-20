@@ -25,6 +25,11 @@ user_role = postgresql.ENUM(
     "admin",
     "viewer",
     name="user_role",
+    # The type is created explicitly in upgrade(). Without this, create_table
+    # emits CREATE TYPE a second time and the migration dies on
+    # "type user_role already exists" - which it did on every run, leaving the
+    # database with the type and none of the tables.
+    create_type=False,
 )
 
 
