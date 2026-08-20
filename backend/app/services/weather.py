@@ -133,3 +133,100 @@ async def refresh_for_user(db: Session, user: User, farm: Farm | None = None) ->
     db.commit()
     db.refresh(snapshot)
     return snapshot
+
+
+COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+
+
+def compass(degrees: Any) -> str:
+    try:
+        return COMPASS[round(float(degrees) / 45) % 8]
+    except (TypeError, ValueError):
+        return ""
+
+
+async def fetch_forecast(latitude: float, longitude: float) -> dict[str, Any]:
+    """Current conditions plus 12 hours and 7 days.
+
+    Shaped to match src/data/weatherData.js so the page can swap sample data for
+    this without touching how anything renders.
+    """
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "current": "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,weather_code",
+        "hourly": "temperature_2m,precipitation_probability,weather_code",
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,sunrise,sunset",
+        "forecast_days": 7,
+        "timezone": "auto",
+        "wind_speed_unit": "kmh",
+    }
+    async with httpx.AsyncClient(timeout=25) as client:
+        response = await client.get(settings.WEATHER_BASE_URL, params=params)
+        response.raise_for_status()
+        data = response.json() or {}
+
+    current = data.get("current") or {}
+    hourly_raw = data.get("hourly") or {}
+    daily_raw = data.get("daily") or {}
+
+    # Open-Meteo returns the whole day in hourly, starting at midnight. The page
+    # wants the next 12 hours, so find now and slice forward from there.
+    times = hourly_raw.get("time") or []
+    now_iso = str(current.get("time") or "")
+    start = next((i for i, t in enumerate(times) if t >= now_iso), 0)
+
+    def hourly_at(key: str, index: int) -> Any:
+        series = hourly_raw.get(key) or []
+        return series[index] if index < len(series) else None
+
+    hourly = [
+        {
+            "at": times[i],
+            "temp": hourly_at("temperature_2m", i),
+            "rain": hourly_at("precipitation_probability", i),
+            "condition": describe(hourly_at("weather_code", i)),
+        }
+        for i in range(start, min(start + 12, len(times)))
+    ]
+
+    def daily_at(key: str, index: int) -> Any:
+        series = daily_raw.get(key) or []
+        return series[index] if index < len(series) else None
+
+    days = daily_raw.get("time") or []
+    daily = [
+        {
+            "date": days[i],
+            "high": daily_at("temperature_2m_max", i),
+            "low": daily_at("temperature_2m_min", i),
+            "condition": describe(daily_at("weather_code", i)),
+            "rain": daily_at("precipitation_probability_max", i),
+            "rainfallMm": daily_at("precipitation_sum", i),
+            "windKph": daily_at("wind_speed_10m_max", i),
+            "humidity": daily_at("relative_humidity_2m_mean", i),
+        }
+        for i in range(len(days))
+    ]
+
+    def clock(iso: Any) -> str:
+        text = str(iso or "")
+        return text[11:16] if len(text) >= 16 else ""
+
+    return {
+        "current": {
+            "tempC": current.get("temperature_2m"),
+            "feelsLikeC": current.get("apparent_temperature"),
+            "condition": describe(current.get("weather_code")),
+            "humidity": current.get("relative_humidity_2m"),
+            "windKph": current.get("wind_speed_10m"),
+            "windDir": compass(current.get("wind_direction_10m")),
+            "rainChance": hourly[0]["rain"] if hourly else None,
+            "updatedAt": current.get("time"),
+            "sunrise": clock(daily_at("sunrise", 0)),
+            "sunset": clock(daily_at("sunset", 0)),
+        },
+        "hourly": hourly,
+        "daily": daily,
+        "rainfallTotalMm": round(sum(d["rainfallMm"] or 0 for d in daily), 1),
+    }

@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import require_roles
-from app.services.weather import refresh_for_user
+from app.services.weather import fetch_forecast, refresh_for_user
 from app.models.farmer import Buyer, Crop, Farm, FarmerAlert, MarketPrice, WeatherSnapshot
 from app.models.role import UserRole
 from app.models.user import User
@@ -153,6 +154,36 @@ async def weather(
     if farm_id:
         query = query.where(WeatherSnapshot.farm_id == farm_id)
     return list(db.scalars(query.order_by(WeatherSnapshot.captured_at.desc()).limit(limit)))
+
+
+@router.get("/weather/forecast")
+async def weather_forecast(current_user: CurrentFarmer, db: DbSession, farm_id: UUID | None = None) -> dict:
+    """Current conditions, 12 hours and 7 days, for the farm's coordinates."""
+    if farm_id:
+        farm = db.scalar(select(Farm).where(Farm.id == farm_id, Farm.owner_id == current_user.id))
+        if farm is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Farm not found.")
+    else:
+        farm = db.scalars(
+            select(Farm).where(Farm.owner_id == current_user.id).order_by(Farm.created_at.asc()).limit(1)
+        ).first()
+
+    latitude = farm.latitude if farm and farm.latitude is not None else settings.DEFAULT_LATITUDE
+    longitude = farm.longitude if farm and farm.longitude is not None else settings.DEFAULT_LONGITUDE
+
+    try:
+        forecast = await fetch_forecast(latitude, longitude)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Weather is unavailable right now.",
+        ) from exc
+
+    forecast["place"] = {
+        "name": (farm.name if farm else None) or "Your farm",
+        "county": (farm.county if farm else None) or "",
+    }
+    return forecast
 
 
 @router.get("/buyers", response_model=list[BuyerRead])
