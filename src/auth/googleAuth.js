@@ -1,17 +1,23 @@
 // Continue with Google.
 //
-// Two paths to the same result. In a browser, Firebase's own popup flow. In the
-// Android app that popup cannot work, so @capacitor-firebase/authentication
-// runs the native Google chooser and hands the credential back to the Firebase
-// JS SDK, leaving one signed-in user either way.
+// The two platforms take genuinely different routes, and conflating them was a
+// bug worth spelling out:
 //
-// The backend never trusts anything this file returns except the ID token: it
-// verifies that token with the Firebase Admin SDK before creating a session.
+//   Android - @capacitor-firebase/authentication signs in to Firebase NATIVELY,
+//             using the config already inside google-services.json. It needs no
+//             web config and no JS SDK at all.
+//   Browser - the Firebase JS SDK popup, which does need the web config from a
+//             Web app registered in the console.
+//
+// So Android works as soon as google-services.json has an OAuth client, and only
+// the browser waits on VITE_FIREBASE_*.
+//
+// Either way the backend trusts nothing but the ID token, which it verifies with
+// the Firebase Admin SDK before creating a session.
 
 import { Capacitor } from "@capacitor/core";
 import {
   GoogleAuthProvider,
-  signInWithCredential,
   signInWithPopup,
   signOut as firebaseSignOut,
 } from "firebase/auth";
@@ -20,45 +26,59 @@ import { getFirebaseAuth, isFirebaseConfigured } from "../lib/firebase";
 export class AuthNotConfiguredError extends Error {
   constructor() {
     super(
-      "Google sign-in is not set up yet. Add the Firebase web config and enable Google as a sign-in provider."
+      "Google sign-in needs the Firebase web config. Register a Web app in the Firebase console and add its values to .env.local."
     );
     this.name = "AuthNotConfiguredError";
   }
 }
 
-async function signInNative() {
-  // Imported lazily so the browser build never pulls in the native plugin.
-  const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
+const isNative = () => Capacitor.isNativePlatform();
 
+async function nativePlugin() {
+  const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
+  return FirebaseAuthentication;
+}
+
+/** True when this platform can sign in at all. */
+export function canSignInWithGoogle() {
+  return isNative() || isFirebaseConfigured();
+}
+
+async function signInNative() {
+  const FirebaseAuthentication = await nativePlugin();
+
+  // skipNativeAuth is false, so this completes the Firebase sign-in natively.
   const result = await FirebaseAuthentication.signInWithGoogle();
-  const idToken = result?.credential?.idToken;
-  if (!idToken) {
-    throw new Error("Google did not return a credential.");
+  const { token } = await FirebaseAuthentication.getIdToken();
+
+  if (!token) {
+    throw new Error("Google signed in but returned no ID token.");
   }
 
-  const auth = getFirebaseAuth();
-  const credential = GoogleAuthProvider.credential(idToken);
-  return signInWithCredential(auth, credential);
+  const user = result?.user || (await FirebaseAuthentication.getCurrentUser())?.user;
+
+  return {
+    idToken: token,
+    profile: {
+      uid: user?.uid || "",
+      name: user?.displayName || "",
+      email: user?.email || "",
+      photoUrl: user?.photoUrl || "",
+    },
+  };
 }
 
 async function signInWeb() {
-  const auth = getFirebaseAuth();
-  const provider = new GoogleAuthProvider();
-  // Always ask which account, rather than silently reusing the last one.
-  provider.setCustomParameters({ prompt: "select_account" });
-  return signInWithPopup(auth, provider);
-}
-
-/**
- * Signs in with Google and returns the Firebase user plus a fresh ID token.
- * The token is what the backend verifies; nothing else here is trusted.
- */
-export async function signInWithGoogle() {
   if (!isFirebaseConfigured()) {
     throw new AuthNotConfiguredError();
   }
 
-  const credential = Capacitor.isNativePlatform() ? await signInNative() : await signInWeb();
+  const auth = getFirebaseAuth();
+  const provider = new GoogleAuthProvider();
+  // Always ask which account rather than silently reusing the last one.
+  provider.setCustomParameters({ prompt: "select_account" });
+
+  const credential = await signInWithPopup(auth, provider);
   const user = credential.user;
 
   return {
@@ -72,29 +92,35 @@ export async function signInWithGoogle() {
   };
 }
 
+export async function signInWithGoogle() {
+  return isNative() ? signInNative() : signInWeb();
+}
+
 export async function signOutOfGoogle() {
-  if (!isFirebaseConfigured()) {
+  if (isNative()) {
+    const FirebaseAuthentication = await nativePlugin();
+    await FirebaseAuthentication.signOut();
     return;
   }
 
-  if (Capacitor.isNativePlatform()) {
-    const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
-    await FirebaseAuthentication.signOut();
-  }
-
-  const auth = getFirebaseAuth();
+  const auth = isFirebaseConfigured() ? getFirebaseAuth() : null;
   if (auth) {
     await firebaseSignOut(auth);
   }
 }
 
 /**
- * A current ID token, refreshed if it is close to expiry. Every authenticated
- * API call needs one of these, so it lives here rather than being cached by
- * callers who cannot know when it expires.
+ * A current ID token, refreshed when asked. Every authenticated API call needs
+ * one, and only this module knows which platform holds the session.
  */
 export async function getIdToken({ forceRefresh = false } = {}) {
-  const auth = getFirebaseAuth();
+  if (isNative()) {
+    const FirebaseAuthentication = await nativePlugin();
+    const { token } = await FirebaseAuthentication.getIdToken({ forceRefresh });
+    return token || null;
+  }
+
+  const auth = isFirebaseConfigured() ? getFirebaseAuth() : null;
   const user = auth?.currentUser;
   return user ? user.getIdToken(forceRefresh) : null;
 }
