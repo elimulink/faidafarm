@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 
-from app.api.v1.routes import admin, auth, farmer, field, health, integrations_kobo, media, notifications, operations, predictions, research, settings, users
+from app.api.v1.routes import admin, assistant, auth, farmer, field, health, integrations_kobo, media, notifications, operations, predictions, research, settings, users
 
 
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(assistant.router, prefix="/assistant", tags=["assistant"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(farmer.router, prefix="/farmer", tags=["farmer"])
 api_router.include_router(research.router, prefix="/research", tags=["research"])

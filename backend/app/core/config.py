@@ -14,6 +14,16 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 10
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta"
+    ASSISTANT_MAX_OUTPUT_TOKENS: int = 1024
+
+    WEATHER_BASE_URL: str = "https://api.open-meteo.com/v1/forecast"
+    # Nairobi, used when a farm has no coordinates recorded.
+    DEFAULT_LATITUDE: float = -1.2921
+    DEFAULT_LONGITUDE: float = 36.8219
+
     KOBO_BASE_URL: str | None = None
     KOBO_API_TOKEN: str | None = None
     KOBO_PROJECT_ID: str | None = None
@@ -24,6 +34,10 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+    @property
+    def assistant_enabled(self) -> bool:
+        return bool(self.GEMINI_API_KEY)
 
     @property
     def is_development(self) -> bool:

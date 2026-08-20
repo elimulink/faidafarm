@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import require_roles
+from app.services.weather import refresh_for_user
 from app.models.farmer import Buyer, Crop, Farm, FarmerAlert, MarketPrice, WeatherSnapshot
 from app.models.role import UserRole
 from app.models.user import User
@@ -126,7 +127,28 @@ def market_prices(
 
 
 @router.get("/weather", response_model=list[WeatherSnapshotRead])
-def weather(current_user: CurrentFarmer, db: DbSession, farm_id: UUID | None = None, limit: int = Query(20, ge=1, le=100)) -> list[WeatherSnapshot]:
+async def weather(
+    current_user: CurrentFarmer,
+    db: DbSession,
+    farm_id: UUID | None = None,
+    limit: int = Query(20, ge=1, le=100),
+    refresh: bool = Query(True, description="Fetch current conditions before returning history."),
+) -> list[WeatherSnapshot]:
+    # Reading stored rows alone would return nothing for a farmer who has never
+    # been fetched for, so the current reading is topped up on the way in. The
+    # service no-ops when a recent snapshot already exists.
+    if refresh:
+        farm = None
+        if farm_id:
+            farm = db.scalar(select(Farm).where(Farm.id == farm_id, Farm.owner_id == current_user.id))
+            if farm is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Farm not found.")
+        else:
+            farm = db.scalars(
+                select(Farm).where(Farm.owner_id == current_user.id).order_by(Farm.created_at.asc()).limit(1)
+            ).first()
+        await refresh_for_user(db, current_user, farm)
+
     query = select(WeatherSnapshot).where(WeatherSnapshot.user_id == current_user.id)
     if farm_id:
         query = query.where(WeatherSnapshot.farm_id == farm_id)
