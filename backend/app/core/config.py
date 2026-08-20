@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 10
     GEMINI_API_KEY: str | None = None
     GEMINI_MODEL: str = "gemini-2.5-flash"
+    # Tried when the primary is rate limited. The lite tier has a far higher
+    # free per-minute allowance, which on the free key is the difference
+    # between an answer and an error.
+    GEMINI_FALLBACK_MODEL: str = "gemini-2.5-flash-lite"
     GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta"
     ASSISTANT_MAX_OUTPUT_TOKENS: int = 1024
 

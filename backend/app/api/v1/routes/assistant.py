@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.core.config import settings
 from app.services.firebase_auth import FirebaseAuthService
-from app.services.gemini import GeminiNotConfigured, generate_reply, stream_reply
+from app.services.gemini import GeminiBusy, GeminiNotConfigured, generate_reply, stream_reply
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -101,6 +101,14 @@ async def chat(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="The assistant is not configured.",
             ) from None
+        except GeminiBusy:
+            # Distinct from a fault: the same question works a moment later, and
+            # the farmer should be told to wait rather than to check a
+            # connection that is fine.
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="The assistant is busy. Try again in a moment.",
+            ) from None
         except Exception as exc:
             logger.exception("Assistant reply failed")
             raise HTTPException(
@@ -122,6 +130,9 @@ async def chat(
                 yield _frame("chunk", {"delta": delta})
         except GeminiNotConfigured:
             yield _frame("error", {"message": "assistant_not_configured"})
+            return
+        except GeminiBusy:
+            yield _frame("error", {"message": "assistant_busy"})
             return
         except Exception:
             logger.exception("Assistant stream failed")

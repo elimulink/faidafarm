@@ -65,6 +65,11 @@ async function requestJsonReply({ messages, context, token, onChunk, signal }) {
     });
 
     if (!response.ok) {
+      // 429 is the assistant being rate limited upstream, not a network fault.
+      // Telling a farmer to check a connection that is fine wastes their airtime.
+      if (response.status === 429) {
+        return { ok: false, reason: "busy", text: "" };
+      }
       return { ok: false, reason: response.status === 503 ? "no_stream" : "network_failed", text: "" };
     }
 
@@ -249,6 +254,8 @@ export async function streamAssistantReply({
 }
 
 export const ASSISTANT_ERROR_MESSAGES = {
+  busy: "The assistant is answering a lot of questions right now. Wait a moment and ask again.",
+  assistant_busy: "The assistant is answering a lot of questions right now. Wait a moment and ask again.",
   offline: "You are offline. Your question is saved - ask again once you have a connection.",
   no_stream: "The assistant is not reachable right now. Please try again.",
   stream_failed: "The connection dropped before an answer arrived. Please try again.",

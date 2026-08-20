@@ -39,6 +39,33 @@ class GeminiNotConfigured(RuntimeError):
     """Raised when no API key is present."""
 
 
+class GeminiBusy(RuntimeError):
+    """Every model was rate limited. Distinct from a fault: retrying works."""
+
+
+def _models() -> list[str]:
+    """Primary first, then the fallback, skipping a duplicate."""
+    models = [settings.GEMINI_MODEL]
+    fallback = settings.GEMINI_FALLBACK_MODEL
+    if fallback and fallback != settings.GEMINI_MODEL:
+        models.append(fallback)
+    return models
+
+
+def _payload(contents: list[dict[str, Any]], context: dict[str, Any] | None) -> dict[str, Any]:
+    return {
+        "contents": contents,
+        "systemInstruction": _system_instruction(context),
+        "generationConfig": {
+            "maxOutputTokens": settings.ASSISTANT_MAX_OUTPUT_TOKENS,
+            "temperature": 0.7,
+            # Thinking costs seconds and tokens the farmer never sees. These are
+            # short advisory answers, so it is turned off.
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+
+
 def _to_contents(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Maps the client's {role, text} history onto Gemini's contents array.
 
@@ -73,7 +100,12 @@ async def stream_reply(
     messages: list[dict[str, Any]],
     context: dict[str, Any] | None = None,
 ) -> AsyncIterator[str]:
-    """Yields reply text deltas as Gemini produces them."""
+    """Yields reply text deltas as Gemini produces them.
+
+    Tries each model in turn while the response is still just headers, so a rate
+    limited primary costs nothing but a moment - once bytes have been yielded a
+    switch is impossible, which is why the status is checked before iterating.
+    """
     if not settings.GEMINI_API_KEY:
         raise GeminiNotConfigured("GEMINI_API_KEY is not set.")
 
@@ -81,57 +113,56 @@ async def stream_reply(
     if not contents:
         return
 
-    url = f"{settings.GEMINI_BASE_URL}/models/{settings.GEMINI_MODEL}:streamGenerateContent"
-    payload = {
-        "contents": contents,
-        "systemInstruction": _system_instruction(context),
-        "generationConfig": {
-            "maxOutputTokens": settings.ASSISTANT_MAX_OUTPUT_TOKENS,
-            "temperature": 0.7,
-            # Thinking costs seconds and tokens the farmer never sees. These are
-            # short advisory answers, so it is turned off.
-            "thinkingConfig": {"thinkingBudget": 0},
-        },
-    }
-
+    payload = _payload(contents, context)
     timeout = httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
+
     async with httpx.AsyncClient(timeout=timeout) as client:
-        async with client.stream(
-            "POST",
-            url,
-            params={"alt": "sse"},
-            headers={
-                "x-goog-api-key": settings.GEMINI_API_KEY,
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        ) as response:
-            if response.status_code != 200:
-                body = (await response.aread()).decode("utf-8", "replace")[:500]
-                logger.error("Gemini returned %s: %s", response.status_code, body)
-                raise httpx.HTTPStatusError(
-                    f"Gemini returned {response.status_code}",
-                    request=response.request,
-                    response=response,
-                )
+        for index, model in enumerate(_models()):
+            url = f"{settings.GEMINI_BASE_URL}/models/{model}:streamGenerateContent"
+            async with client.stream(
+                "POST",
+                url,
+                params={"alt": "sse"},
+                headers={
+                    "x-goog-api-key": settings.GEMINI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            ) as response:
+                if response.status_code == 429:
+                    await response.aread()
+                    logger.warning("%s is rate limited", model)
+                    if index + 1 < len(_models()):
+                        continue
+                    raise GeminiBusy("Every model is rate limited.")
 
-            async for line in response.aiter_lines():
-                if not line.startswith("data:"):
-                    continue
-                raw = line[5:].strip()
-                if not raw or raw == "[DONE]":
-                    continue
-                try:
-                    frame = json.loads(raw)
-                except json.JSONDecodeError:
-                    logger.warning("Skipping unparseable Gemini frame")
-                    continue
+                if response.status_code != 200:
+                    body = (await response.aread()).decode("utf-8", "replace")[:500]
+                    logger.error("Gemini %s returned %s: %s", model, response.status_code, body)
+                    raise httpx.HTTPStatusError(
+                        f"Gemini returned {response.status_code}",
+                        request=response.request,
+                        response=response,
+                    )
 
-                for candidate in frame.get("candidates") or []:
-                    for part in (candidate.get("content") or {}).get("parts") or []:
-                        delta = part.get("text")
-                        if delta:
-                            yield delta
+                async for line in response.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    raw = line[5:].strip()
+                    if not raw or raw == "[DONE]":
+                        continue
+                    try:
+                        frame = json.loads(raw)
+                    except json.JSONDecodeError:
+                        logger.warning("Skipping unparseable Gemini frame")
+                        continue
+
+                    for candidate in frame.get("candidates") or []:
+                        for part in (candidate.get("content") or {}).get("parts") or []:
+                            delta = part.get("text")
+                            if delta:
+                                yield delta
+                return
 
 
 async def generate_reply(
@@ -153,32 +184,32 @@ async def generate_reply(
     if not contents:
         return ""
 
-    url = f"{settings.GEMINI_BASE_URL}/models/{settings.GEMINI_MODEL}:generateContent"
-    payload = {
-        "contents": contents,
-        "systemInstruction": _system_instruction(context),
-        "generationConfig": {
-            "maxOutputTokens": settings.ASSISTANT_MAX_OUTPUT_TOKENS,
-            "temperature": 0.7,
-            "thinkingConfig": {"thinkingBudget": 0},
-        },
-    }
+    payload = _payload(contents, context)
+    models = _models()
 
     async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
-        response = await client.post(
-            url,
-            headers={
-                "x-goog-api-key": settings.GEMINI_API_KEY,
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        )
-        response.raise_for_status()
-        data = response.json() or {}
+        for index, model in enumerate(models):
+            response = await client.post(
+                f"{settings.GEMINI_BASE_URL}/models/{model}:generateContent",
+                headers={
+                    "x-goog-api-key": settings.GEMINI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
 
-    candidates = data.get("candidates") or []
-    if not candidates:
-        return ""
+            if response.status_code == 429:
+                logger.warning("%s is rate limited", model)
+                if index + 1 < len(models):
+                    continue
+                raise GeminiBusy("Every model is rate limited.")
 
-    parts = (candidates[0].get("content") or {}).get("parts") or []
-    return "".join(part.get("text", "") for part in parts).strip()
+            response.raise_for_status()
+            data = response.json() or {}
+            candidates = data.get("candidates") or []
+            if not candidates:
+                return ""
+            parts = (candidates[0].get("content") or {}).get("parts") or []
+            return "".join(part.get("text", "") for part in parts).strip()
+
+    return ""
