@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Float, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,7 +38,14 @@ class Crop(Base):
     variety: Mapped[str | None] = mapped_column(String(120))
     season: Mapped[str | None] = mapped_column(String(80))
     acreage: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    planted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expected_harvest_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    stage: Mapped[str | None] = mapped_column(String(80))
+    # Null means "not recorded". Progress is derived from the planting and
+    # harvest dates when both exist, so this only holds a manual override.
+    progress_percent: Mapped[int | None] = mapped_column(Integer)
+    expected_yield: Mapped[str | None] = mapped_column(String(80))
+    health: Mapped[str | None] = mapped_column(String(40))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -84,6 +91,19 @@ class Buyer(Base):
     contact_phone: Mapped[str | None] = mapped_column(String(32))
     contact_email: Mapped[str | None] = mapped_column(String(320))
     crop_interests: Mapped[str | None] = mapped_column(Text)
+    channel: Mapped[str | None] = mapped_column(String(40), index=True)
+    buyer_type: Mapped[str | None] = mapped_column(String(80))
+    town: Mapped[str | None] = mapped_column(String(120))
+    distance_km: Mapped[float | None] = mapped_column(Float)
+    offer_per_kg: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    demand: Mapped[str | None] = mapped_column(String(40))
+    verification: Mapped[str] = mapped_column(String(40), default="unverified", server_default="unverified")
+    rating: Mapped[float | None] = mapped_column(Float)
+    trades: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    payment_terms: Mapped[str | None] = mapped_column(String(255))
+    min_volume_kg: Mapped[int | None] = mapped_column(Integer)
+    transport: Mapped[str | None] = mapped_column(String(120))
+    last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

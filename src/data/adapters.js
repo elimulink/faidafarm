@@ -81,6 +81,28 @@ function harvestIn(value) {
   return `${days} day${days === 1 ? "" : "s"}`;
 }
 
+/** Percent of the way from planting to expected harvest. */
+function growthProgress(crop) {
+  if (crop.progress_percent != null) {
+    return crop.progress_percent;
+  }
+
+  // Derived rather than stored where possible: a percentage typed in once goes
+  // stale the next day, while two dates stay correct on their own.
+  if (!crop.planted_at || !crop.expected_harvest_date) {
+    return null;
+  }
+
+  const planted = new Date(crop.planted_at).getTime();
+  const harvest = new Date(crop.expected_harvest_date).getTime();
+  if (Number.isNaN(planted) || Number.isNaN(harvest) || harvest <= planted) {
+    return null;
+  }
+
+  const elapsed = (Date.now() - planted) / (harvest - planted);
+  return Math.round(Math.min(1, Math.max(0, elapsed)) * 100);
+}
+
 export function adaptCrop(crop) {
   const acreage = crop.acreage == null ? null : Number(crop.acreage);
   return {
@@ -90,12 +112,11 @@ export function adaptCrop(crop) {
     season: crop.season || "",
     acreage: acreage == null ? null : `${acreage} acre${acreage === 1 ? "" : "s"}`,
     harvestIn: harvestIn(crop.expected_harvest_date),
-    // Growth stage, progress, yield and health are not recorded by the backend.
-    // Left null so the page can omit them rather than show a made-up 75%.
-    stage: null,
-    progress: null,
-    expectedYield: null,
-    health: null,
+    plantedAt: crop.planted_at ? new Date(crop.planted_at) : null,
+    stage: crop.stage || null,
+    progress: growthProgress(crop),
+    expectedYield: crop.expected_yield || null,
+    health: crop.health || null,
   };
 }
 
@@ -125,3 +146,37 @@ export function adaptDashboard(payload) {
     alerts: adaptAlerts(payload?.recent_alerts),
   };
 }
+
+export function adaptBuyer(buyer) {
+  const lastActive = buyer.last_active_at
+    ? Math.max(0, Math.round((Date.now() - toTimestamp(buyer.last_active_at)) / DAY))
+    : null;
+
+  return {
+    id: buyer.id,
+    name: buyer.name,
+    channel: buyer.channel || "local",
+    type: buyer.buyer_type || "Buyer",
+    town: buyer.town || buyer.county || "",
+    county: buyer.county || "",
+    distanceKm: buyer.distance_km,
+    // Stored as free text ("Ndengu, Maize") because a buyer's interests are
+    // typed in, not picked from a list.
+    crops: String(buyer.crop_interests || "")
+      .split(",")
+      .map((crop) => crop.trim())
+      .filter(Boolean),
+    offerPerKg: buyer.offer_per_kg == null ? null : Number(buyer.offer_per_kg),
+    demand: buyer.demand || "Unknown",
+    verification: buyer.verification || "unverified",
+    rating: buyer.rating,
+    trades: buyer.trades ?? 0,
+    paymentTerms: buyer.payment_terms || "",
+    minVolumeKg: buyer.min_volume_kg,
+    lastActiveDays: lastActive,
+    phone: buyer.contact_phone || "",
+    transport: buyer.transport || "",
+  };
+}
+
+export const adaptBuyers = (payload) => (payload || []).map(adaptBuyer);

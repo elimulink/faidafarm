@@ -26,7 +26,9 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { clearStoredUser } from "../../auth/session";
 import { FINANCING_ENABLED } from "../../config/features";
 import { mobileNavItems, sidebarItems } from "./farmerNav";
-import { getUnreadAlertCount } from "../../data/alertsData";
+import { loadReadAlerts } from "../../data/alertsData";
+import { adaptAlerts } from "../../data/adapters";
+import { useApiData } from "../../lib/useApiData";
 
 
 function cn(...classes) {
@@ -243,7 +245,12 @@ function FarmerMobileMenu({ isOpen, onClose }) {
 }
 
 function NotificationBell() {
-  const unread = getUnreadAlertCount();
+  // Counted from the same endpoint the Alerts page reads, so the badge cannot
+  // promise unread alerts the page then fails to show. Unread means unread on
+  // the server, or not yet dismissed on this device.
+  const { data } = useApiData("/farmer/alerts?unread_only=true", { adapt: adaptAlerts });
+  const dismissed = loadReadAlerts();
+  const unread = (data || []).filter((alert) => !dismissed.includes(alert.id)).length;
 
   return (
     <Link

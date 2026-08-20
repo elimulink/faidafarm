@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class FarmCreate(BaseModel):
@@ -30,7 +30,12 @@ class CropCreate(BaseModel):
     variety: str | None = None
     season: str | None = None
     acreage: Decimal | None = None
+    planted_at: datetime | None = None
     expected_harvest_date: datetime | None = None
+    stage: str | None = None
+    progress_percent: int | None = Field(default=None, ge=0, le=100)
+    expected_yield: str | None = None
+    health: str | None = None
 
 
 class CropRead(CropCreate):
@@ -45,7 +50,12 @@ class CropUpdate(BaseModel):
     variety: str | None = None
     season: str | None = None
     acreage: Decimal | None = None
+    planted_at: datetime | None = None
     expected_harvest_date: datetime | None = None
+    stage: str | None = None
+    progress_percent: int | None = Field(default=None, ge=0, le=100)
+    expected_yield: str | None = None
+    health: str | None = None
 
 
 class MarketPriceRead(BaseModel):
@@ -81,6 +91,19 @@ class BuyerRead(BaseModel):
     contact_phone: str | None
     contact_email: EmailStr | None
     crop_interests: str | None
+    channel: str | None
+    buyer_type: str | None
+    town: str | None
+    distance_km: float | None
+    offer_per_kg: Decimal | None
+    demand: str | None
+    verification: str
+    rating: float | None
+    trades: int
+    payment_terms: str | None
+    min_volume_kg: int | None
+    transport: str | None
+    last_active_at: datetime | None
     is_active: bool
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)

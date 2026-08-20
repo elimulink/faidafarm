@@ -9,24 +9,24 @@ import {
   SimpleBars,
 } from "../../components/farmer/FarmerShared";
 import {
-  farmOverview,
   marketRows,
   priceToday,
   quickActions,
   recommendation,
   timelineSteps,
 } from "../../data/farmerDashboardData";
-import { getPrimaryCropName } from "../../farm/cropStorage";
 import PriceTrendChart from "../../components/charts/PriceTrendChart";
 import { PRICE_UNIT, getMarketInsight, getPriceStats, priceHistory } from "../../data/marketData";
 import { SEVERITIES, alerts as sampleAlerts, formatAlertAge } from "../../data/alertsData";
 import { adaptAlerts } from "../../data/adapters";
+import { useFarmOverview } from "../../data/farmOverviewLive";
 import { useApiData } from "../../lib/useApiData";
 
 function TodayHero({ compact = false }) {
   const stats = getPriceStats(priceHistory, 7);
   const insight = getMarketInsight(stats);
-  const crop = getPrimaryCropName(farmOverview.cropName);
+  const overview = useFarmOverview();
+  const crop = overview.cropName;
   const holding = insight.tone === "hold";
 
   return (
@@ -38,7 +38,7 @@ function TodayHero({ compact = false }) {
             Today
           </span>
           <span className="text-xs font-semibold text-[#5F7A5F]">
-            {crop} · {farmOverview.stage}
+            {overview.stage ? `${crop} · ${overview.stage}` : crop}
           </span>
         </div>
 
@@ -65,7 +65,7 @@ function TodayHero({ compact = false }) {
           </div>
           <div className="rounded-2xl bg-white px-3 py-2.5">
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#8A958A]">Harvest</dt>
-            <dd className="mt-1 text-lg font-bold text-[#182118]">{farmOverview.harvestIn}</dd>
+            <dd className="mt-1 text-lg font-bold text-[#182118]">{overview.harvestIn || "Not recorded"}</dd>
           </div>
         </dl>
 
@@ -90,6 +90,8 @@ function TodayHero({ compact = false }) {
 }
 
 function FarmOverviewCard() {
+  const overview = useFarmOverview();
+
   return (
     <Card>
       <h3 className="text-lg font-semibold text-[#1F2B1F]">Farm Overview</h3>
@@ -101,30 +103,40 @@ function FarmOverviewCard() {
 
         <div className="flex-1">
           <h4 className="text-[30px] font-bold leading-none text-[#1B241D]">
-            {getPrimaryCropName(farmOverview.cropName)}
+            {overview.cropName}
           </h4>
-          <div className="mt-3 inline-flex rounded-full bg-[#EAF4E6] px-3 py-1 text-sm font-medium text-[#2F6B33]">
-            {farmOverview.stage}
-          </div>
+          {overview.stage ? (
+            <div className="mt-3 inline-flex rounded-full bg-[#EAF4E6] px-3 py-1 text-sm font-medium text-[#2F6B33]">
+              {overview.stage}
+            </div>
+          ) : null}
 
-          <div className="mt-5">
-            <p className="text-sm text-[#6B7468]">Harvest in</p>
-            <p className="mt-1 text-[32px] font-bold leading-none text-[#141B16]">
-              {farmOverview.harvestIn}
+          {overview.harvestIn ? (
+            <div className="mt-5">
+              <p className="text-sm text-[#6B7468]">Harvest in</p>
+              <p className="mt-1 text-[32px] font-bold leading-none text-[#141B16]">
+                {overview.harvestIn}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-5 text-sm text-[#6B7468]">
+              No harvest date recorded for this crop yet.
             </p>
-          </div>
+          )}
         </div>
       </div>
 
-      <div className="mt-8 flex items-center gap-4">
-        <div className="h-3 flex-1 overflow-hidden rounded-full bg-[#E6ECE3]">
-          <div
-            className="h-full rounded-full bg-[#2F8F46]"
-            style={{ width: `${farmOverview.progress}%` }}
-          />
+      {overview.progress == null ? null : (
+        <div className="mt-8 flex items-center gap-4">
+          <div className="h-3 flex-1 overflow-hidden rounded-full bg-[#E6ECE3]">
+            <div
+              className="h-full rounded-full bg-[#2F8F46]"
+              style={{ width: `${overview.progress}%` }}
+            />
+          </div>
+          <span className="text-base font-medium text-[#344034]">{overview.progress}%</span>
         </div>
-        <span className="text-base font-medium text-[#344034]">{farmOverview.progress}%</span>
-      </div>
+      )}
     </Card>
   );
 }
@@ -383,6 +395,8 @@ function RecentAlerts() {
 }
 
 function MobileDashboardContent() {
+  const overview = useFarmOverview();
+
   return (
     <>
       <TodayHero compact />
@@ -394,15 +408,15 @@ function MobileDashboardContent() {
           </div>
 
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-[#1C251D]">{getPrimaryCropName(farmOverview.cropName)}</h3>
+            <h3 className="text-xl font-bold text-[#1C251D]">{overview.cropName}</h3>
             <div className="mt-2 inline-flex rounded-full bg-[#EAF4E6] px-3 py-1 text-xs font-medium text-[#2F6B33]">
-              {farmOverview.stage}
+              {overview.stage}
             </div>
 
             <div className="mt-4">
               <p className="text-sm text-[#6B7468]">Harvest in</p>
               <p className="text-[32px] font-bold leading-none text-[#111711]">
-                {farmOverview.harvestIn}
+                {overview.harvestIn || "Not recorded"}
               </p>
             </div>
           </div>
@@ -412,10 +426,12 @@ function MobileDashboardContent() {
           <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#E6ECE3]">
             <div
               className="h-full rounded-full bg-[#2F8F46]"
-              style={{ width: `${farmOverview.progress}%` }}
+              style={{ width: `${overview.progress ?? 0}%` }}
             />
           </div>
-          <span className="text-sm font-semibold text-[#324032]">{farmOverview.progress}%</span>
+          <span className="text-sm font-semibold text-[#324032]">
+            {overview.progress == null ? "--" : `${overview.progress}%`}
+          </span>
         </div>
       </MobileCard>
 

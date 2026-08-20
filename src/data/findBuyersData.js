@@ -206,13 +206,20 @@ function clamp01(value) {
 }
 
 // Price: at the reference price a buyer scores 0, at +20% or better it scores 1.
+// An unrecorded price cannot be ranked, so it scores nothing.
 function priceFactor(offerPerKg) {
+  if (offerPerKg == null) {
+    return 0;
+  }
   const premium = (offerPerKg - MARKET_REFERENCE_PRICE) / MARKET_REFERENCE_PRICE;
   return clamp01(premium / 0.2);
 }
 
 // Distance: full marks within 10 km, nothing beyond 200 km.
 function distanceFactor(distanceKm) {
+  if (distanceKm == null) {
+    return 0;
+  }
   return clamp01((200 - distanceKm) / 190);
 }
 
@@ -240,7 +247,7 @@ export function getMatchReason(buyer) {
   const parts = [
     { weight: priceFactor(buyer.offerPerKg) * MATCH_WEIGHTS.price, text: pricePremiumLabel(buyer) },
     {
-      weight: distanceFactor(buyer.distanceKm) * MATCH_WEIGHTS.distance,
+      weight: buyer.distanceKm == null ? -1 : distanceFactor(buyer.distanceKm) * MATCH_WEIGHTS.distance,
       text: `Only ${buyer.distanceKm} km away`,
     },
     {
@@ -257,6 +264,9 @@ export function getMatchReason(buyer) {
 }
 
 export function getPricePremium(buyer) {
+  if (buyer.offerPerKg == null) {
+    return null;
+  }
   return Math.round(
     ((buyer.offerPerKg - MARKET_REFERENCE_PRICE) / MARKET_REFERENCE_PRICE) * 100
   );
@@ -264,6 +274,10 @@ export function getPricePremium(buyer) {
 
 function pricePremiumLabel(buyer) {
   const premium = getPricePremium(buyer);
+
+  if (premium === null) {
+    return "No price recorded yet";
+  }
 
   if (premium > 0) {
     return `Pays ${premium}% above the market price`;
@@ -277,6 +291,10 @@ function pricePremiumLabel(buyer) {
 }
 
 export function getLastActiveLabel(buyer) {
+  if (buyer.lastActiveDays == null) {
+    return "Activity not recorded";
+  }
+
   if (buyer.lastActiveDays <= 1) {
     return "Active today";
   }

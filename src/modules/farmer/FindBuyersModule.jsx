@@ -20,12 +20,12 @@ import {
 } from "../../components/farmer/FarmerShared";
 import NetPriceBreakdown from "../../components/farmer/NetPriceBreakdown";
 import { breakEvenKg, estimateNet } from "../../data/transportData";
+import { adaptBuyers } from "../../data/adapters";
+import { useApiData } from "../../lib/useApiData";
 import {
   BUYER_CHANNELS,
   MARKET_REFERENCE_PRICE,
-  buyerCounties,
-  buyerCrops,
-  buyers,
+  buyers as sampleBuyers,
   getLastActiveLabel,
   getMatchReason,
   getMatchScore,
@@ -40,15 +40,15 @@ const verificationStyles = {
   unverified: { icon: ShieldAlert, className: "bg-[#FDF4E7] text-[#B77A18]" },
 };
 
-const cropOptions = [
-  { value: "all", label: "All crops" },
-  ...buyerCrops.map((value) => ({ value, label: value })),
-];
+function cropOptionsFor(list) {
+  const crops = [...new Set(list.flatMap((buyer) => buyer.crops))].sort();
+  return [{ value: "all", label: "All crops" }, ...crops.map((value) => ({ value, label: value }))];
+}
 
-const countyOptions = [
-  { value: "all", label: "All counties" },
-  ...buyerCounties.map((value) => ({ value, label: value })),
-];
+function countyOptionsFor(list) {
+  const counties = [...new Set(list.map((buyer) => buyer.county).filter(Boolean))].sort();
+  return [{ value: "all", label: "All counties" }, ...counties.map((value) => ({ value, label: value }))];
+}
 
 const sortSelectOptions = sortOptions.map((option) => ({
   value: option.id,
@@ -67,10 +67,18 @@ function useBuyerFilters() {
   // Default to what the farmer keeps, not what they are offered.
   const [sortBy, setSortBy] = useState("net");
 
+  // Listed buyers only. A sample buyer here is a phone number that does not
+  // answer and a price nobody is paying, so there is no fallback on error.
+  const { data, live, loading, error } = useApiData("/farmer/buyers?limit=100", {
+    adapt: adaptBuyers,
+    fallback: sampleBuyers,
+  });
+  const source = useMemo(() => data || [], [data]);
+
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
 
-    const matched = buyers.filter((buyer) => {
+    const matched = source.filter((buyer) => {
       if (needle) {
         const haystack = [buyer.name, buyer.town, buyer.county, buyer.type, ...buyer.crops]
           .join(" ")
@@ -101,16 +109,19 @@ function useBuyerFilters() {
 
     const netOf = (buyer) => estimateNet({ buyer, quantityKg }).netPerKg;
 
+    const high = (value) => (value == null ? -Infinity : value);
+    const low = (value) => (value == null ? Infinity : value);
+
     const sorters = {
       net: (a, b) => netOf(b) - netOf(a),
       match: (a, b) => getMatchScore(b) - getMatchScore(a),
-      price: (a, b) => b.offerPerKg - a.offerPerKg,
-      distance: (a, b) => a.distanceKm - b.distanceKm,
-      rating: (a, b) => b.rating - a.rating,
+      price: (a, b) => high(b.offerPerKg) - high(a.offerPerKg),
+      distance: (a, b) => low(a.distanceKm) - low(b.distanceKm),
+      rating: (a, b) => high(b.rating) - high(a.rating),
     };
 
     return matched.sort(sorters[sortBy] ?? sorters.net);
-  }, [query, crop, county, channel, verifiedOnly, sortBy, quantityKg]);
+  }, [source, query, crop, county, channel, verifiedOnly, sortBy, quantityKg]);
 
   function reset() {
     setQuery("");
@@ -142,6 +153,13 @@ function useBuyerFilters() {
     setVerifiedOnly,
     sortBy,
     verifiedOnly,
+    source,
+    total: source.length,
+    cropOptions: cropOptionsFor(source),
+    countyOptions: countyOptionsFor(source),
+    live,
+    loading,
+    error,
   };
 }
 
@@ -252,7 +270,7 @@ function LoadControl({ value, onChange }) {
 
 // The comparison the page exists for: at this load, does hauling to Marikiti
 // actually beat selling at the gate?
-function ChannelVerdict({ quantityKg }) {
+function ChannelVerdict({ quantityKg, buyers = [] }) {
   const withNet = (buyer) => ({ buyer, net: estimateNet({ buyer, quantityKg }) });
   const best = (channel) =>
     buyers
@@ -484,15 +502,23 @@ function ChannelTabs({ value, onChange }) {
   );
 }
 
-function EmptyState({ onReset }) {
+function EmptyState({ onReset, loading = false, error = "", total = 0 }) {
   return (
     <div className="rounded-[24px] border border-dashed border-[#D8E2D4] bg-[#FAFCF9] px-6 py-12 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1F6EE]">
         <Search className="h-7 w-7 text-[#2F8F46]" />
       </div>
-      <h4 className="mt-4 text-lg font-bold text-[#182118]">No buyers match this search</h4>
+      <h4 className="mt-4 text-lg font-bold text-[#182118]">
+        {loading ? "Loading buyers" : error ? "Buyers unavailable" : total === 0 ? "No buyers listed yet" : "No buyers match this search"}
+      </h4>
       <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#667164]">
-        Try a different crop or county, or clear the filters to see every buyer in your region.
+        {loading
+          ? "One moment."
+          : error
+            ? error
+            : total === 0
+              ? "No buyers have been recorded for your area yet. Check back once your county is covered."
+              : "Try a different crop or county, or clear the filters to see every buyer in your region."}
       </p>
       <button
         type="button"
@@ -516,7 +542,7 @@ function DesktopContent() {
           <SectionTitle
             action={
               <span className="text-sm font-semibold text-[#667164]">
-                {filters.results.length} of {buyers.length} buyers
+                {filters.results.length} of {filters.total} buyers
               </span>
             }
           >
@@ -531,7 +557,7 @@ function DesktopContent() {
           <div className="mt-5 space-y-4">
             <LoadControl value={filters.quantityKg} onChange={filters.setQuantityKg} />
             <ChannelTabs value={filters.channel} onChange={filters.setChannel} />
-            <ChannelVerdict quantityKg={filters.quantityKg} />
+            <ChannelVerdict quantityKg={filters.quantityKg} buyers={filters.source} />
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -543,13 +569,13 @@ function DesktopContent() {
             <SelectField
               label="Crop"
               value={filters.crop}
-              options={cropOptions}
+              options={filters.cropOptions}
               onChange={filters.setCrop}
             />
             <SelectField
               label="County"
               value={filters.county}
-              options={countyOptions}
+              options={filters.countyOptions}
               onChange={filters.setCounty}
             />
             <SelectField
@@ -579,7 +605,7 @@ function DesktopContent() {
                 ))}
               </div>
             ) : (
-              <EmptyState onReset={filters.reset} />
+              <EmptyState onReset={filters.reset} loading={filters.loading} error={filters.error} total={filters.total} />
             )}
           </div>
         </Card>
@@ -647,7 +673,7 @@ function MobileContent() {
     <div className="space-y-4">
       <LoadControl value={filters.quantityKg} onChange={filters.setQuantityKg} />
       <ChannelTabs value={filters.channel} onChange={filters.setChannel} />
-      <ChannelVerdict quantityKg={filters.quantityKg} />
+      <ChannelVerdict quantityKg={filters.quantityKg} buyers={filters.source} />
 
       <div className="flex items-center gap-2">
         <SearchField
@@ -675,13 +701,13 @@ function MobileContent() {
           <SelectField
             label="Crop"
             value={filters.crop}
-            options={cropOptions}
+            options={filters.cropOptions}
             onChange={filters.setCrop}
           />
           <SelectField
             label="County"
             value={filters.county}
-            options={countyOptions}
+            options={filters.countyOptions}
             onChange={filters.setCounty}
           />
           <SelectField
@@ -703,7 +729,7 @@ function MobileContent() {
           <MobileBuyerCard key={buyer.id} buyer={buyer} quantityKg={filters.quantityKg} />
         ))
       ) : (
-        <EmptyState onReset={filters.reset} />
+        <EmptyState onReset={filters.reset} loading={filters.loading} error={filters.error} total={filters.total} />
       )}
     </div>
   );
