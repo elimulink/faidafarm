@@ -34,6 +34,20 @@ export class AuthNotConfiguredError extends Error {
 
 const isNative = () => Capacitor.isNativePlatform();
 
+// A first sign-in on a device can genuinely take a while - Play Services may be
+// fetching - but it must not hang forever behind a "Signing in..." label with
+// no way out.
+const SIGN_IN_TIMEOUT_MS = 90000;
+
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function nativePlugin() {
   const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
   return FirebaseAuthentication;
@@ -48,8 +62,17 @@ async function signInNative() {
   const FirebaseAuthentication = await nativePlugin();
 
   // skipNativeAuth is false, so this completes the Firebase sign-in natively.
-  const result = await FirebaseAuthentication.signInWithGoogle();
-  const { token } = await FirebaseAuthentication.getIdToken();
+  const result = await withTimeout(
+    FirebaseAuthentication.signInWithGoogle(),
+    SIGN_IN_TIMEOUT_MS,
+    "Google did not respond. Check your connection and try again."
+  );
+
+  const { token } = await withTimeout(
+    FirebaseAuthentication.getIdToken(),
+    30000,
+    "Signed in, but getting the security token timed out. Try again."
+  );
 
   if (!token) {
     throw new Error("Google signed in but returned no ID token.");
@@ -78,7 +101,11 @@ async function signInWeb() {
   // Always ask which account rather than silently reusing the last one.
   provider.setCustomParameters({ prompt: "select_account" });
 
-  const credential = await signInWithPopup(auth, provider);
+  const credential = await withTimeout(
+    signInWithPopup(auth, provider),
+    SIGN_IN_TIMEOUT_MS,
+    "The Google window did not complete. Check it was not blocked, and try again."
+  );
   const user = credential.user;
 
   return {
