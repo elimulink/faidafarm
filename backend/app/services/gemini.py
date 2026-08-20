@@ -132,3 +132,53 @@ async def stream_reply(
                         delta = part.get("text")
                         if delta:
                             yield delta
+
+
+async def generate_reply(
+    messages: list[dict[str, Any]],
+    context: dict[str, Any] | None = None,
+) -> str:
+    """One request, one complete answer.
+
+    The streaming path is nicer when it works, but SSE has to survive Render's
+    proxy, Cloudflare and a WebView on a 3G handset, and any one of those can
+    buffer or drop it. This is the same plain request/response ElimuLink uses,
+    kept as the fallback so a farmer gets an answer even when the stream cannot
+    be held open.
+    """
+    if not settings.GEMINI_API_KEY:
+        raise GeminiNotConfigured("GEMINI_API_KEY is not set.")
+
+    contents = _to_contents(messages)
+    if not contents:
+        return ""
+
+    url = f"{settings.GEMINI_BASE_URL}/models/{settings.GEMINI_MODEL}:generateContent"
+    payload = {
+        "contents": contents,
+        "systemInstruction": _system_instruction(context),
+        "generationConfig": {
+            "maxOutputTokens": settings.ASSISTANT_MAX_OUTPUT_TOKENS,
+            "temperature": 0.7,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
+        response = await client.post(
+            url,
+            headers={
+                "x-goog-api-key": settings.GEMINI_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+        )
+        response.raise_for_status()
+        data = response.json() or {}
+
+    candidates = data.get("candidates") or []
+    if not candidates:
+        return ""
+
+    parts = (candidates[0].get("content") or {}).get("parts") or []
+    return "".join(part.get("text", "") for part in parts).strip()

@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.services.firebase_auth import FirebaseAuthService
-from app.services.gemini import GeminiNotConfigured, stream_reply
+from app.services.gemini import GeminiNotConfigured, generate_reply, stream_reply
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -57,8 +57,9 @@ async def _identify(credentials: HTTPAuthorizationCredentials | None) -> dict | 
 async def chat(
     payload: AssistantChatRequest,
     request: Request,
+    stream: bool = True,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(optional_bearer)] = None,
-) -> StreamingResponse:
+):
     if not settings.assistant_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -78,6 +79,27 @@ async def chat(
 
     session_id = str(uuid.uuid4())
     messages = [message.model_dump() for message in payload.messages]
+
+    # Plain JSON when the caller did not ask for a stream, or cannot accept one.
+    # A WebView on a weak connection often cannot hold an SSE body open, and an
+    # answer that arrives late in one piece beats a stream that dies halfway.
+    wants_stream = stream and "text/event-stream" in request.headers.get("accept", "")
+    if not wants_stream:
+        try:
+            text = await generate_reply(messages, context)
+        except GeminiNotConfigured:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The assistant is not configured.",
+            ) from None
+        except Exception as exc:
+            logger.exception("Assistant reply failed")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="The assistant could not answer just now.",
+            ) from exc
+
+        return {"text": text, "session_id": session_id}
 
     async def event_stream():
         collected: list[str] = []

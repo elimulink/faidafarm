@@ -20,6 +20,70 @@ function apiUrl(path) {
   return `${String(API_BASE).replace(/\/$/, "")}${path}`;
 }
 
+// Reveals a complete answer a few words at a time.
+//
+// The JSON path returns everything at once. Dumping a paragraph into the bubble
+// in one frame reads as a jolt, so it is released in small steps at roughly
+// reading pace. Purely cosmetic - the text is already in hand, and if the caller
+// aborts we stop immediately rather than finishing the animation.
+const REVEAL_STEP_MS = 16;
+const REVEAL_CHARS = 3;
+
+async function revealSmoothly(text, { onChunk, signal }) {
+  if (!onChunk) {
+    return text;
+  }
+
+  let shown = "";
+  for (let index = 0; index < text.length; index += REVEAL_CHARS) {
+    if (signal?.aborted) {
+      return shown;
+    }
+    const delta = text.slice(index, index + REVEAL_CHARS);
+    shown += delta;
+    onChunk(delta, shown);
+    await new Promise((resolve) => setTimeout(resolve, REVEAL_STEP_MS));
+  }
+
+  return shown;
+}
+
+// The non-streaming path, the same shape ElimuLink uses: one POST, one reply.
+// SSE has to survive Render's proxy, Cloudflare and a WebView on 3G; when any
+// of those drops it, this still gets the farmer an answer.
+async function requestJsonReply({ messages, context, token, onChunk, signal }) {
+  try {
+    const response = await fetch(`${apiUrl(ASSISTANT_PATH)}?stream=0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ messages, context }),
+      signal,
+    });
+
+    if (!response.ok) {
+      return { ok: false, reason: response.status === 503 ? "no_stream" : "network_failed", text: "" };
+    }
+
+    const payload = await response.json();
+    const text = String(payload?.text || "").trim();
+    if (!text) {
+      return { ok: false, reason: "empty_stream", text: "" };
+    }
+
+    await revealSmoothly(text, { onChunk, signal });
+    return { ok: true, text, conversationId: String(payload?.session_id || "") };
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return { ok: true, text: "", aborted: true };
+    }
+    return { ok: false, reason: "network_failed", text: "" };
+  }
+}
+
 // Reads an SSE body frame by frame. Frames are separated by a blank line and
 // may be split across reads, so the buffer is drained rather than assumed
 // whole.
@@ -145,6 +209,8 @@ export async function streamAssistantReply({
     return { ok: false, reason: "offline", text: "" };
   }
 
+  const fallback = () => requestJsonReply({ messages, context, token, onChunk, signal });
+
   try {
     const response = await fetch(`${apiUrl(ASSISTANT_PATH)}?stream=1`, {
       method: "POST",
@@ -159,15 +225,26 @@ export async function streamAssistantReply({
 
     const contentType = String(response.headers.get("content-type") || "");
     if (!response.ok || !response.body || !contentType.includes("text/event-stream")) {
-      return { ok: false, reason: "no_stream", text: "" };
+      // A proxy that stripped the stream, or a 5xx. Ask again without it.
+      return await fallback();
     }
 
-    return await consumeEventStream(response, { onChunk, signal });
+    const outcome = await consumeEventStream(response, { onChunk, signal });
+
+    // A stream that died before delivering anything is worth retrying whole.
+    // One that was cut off mid-answer is not: re-asking would bill a second
+    // reply and repeat the words already on screen.
+    if (!outcome.ok && !outcome.text && outcome.reason !== "stream_interrupted") {
+      return await fallback();
+    }
+
+    return outcome;
   } catch (error) {
     if (error?.name === "AbortError") {
       return { ok: true, text: "", aborted: true };
     }
-    return { ok: false, reason: "network_failed", text: "" };
+    // Includes the CORS case, where fetch rejects without a status.
+    return await fallback();
   }
 }
 
