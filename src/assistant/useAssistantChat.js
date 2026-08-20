@@ -132,35 +132,41 @@ export default function useAssistantChat({ context = null } = {}) {
         return;
       }
 
-      let chatId = activeChatId;
-      let history = [];
+      const existing = chats.find((item) => item.id === activeChatId);
+      const chatId = existing ? existing.id : createChat(chats).id;
+
+      const userMessage = {
+        id: makeMessageId(),
+        role: "user",
+        text,
+        attachments,
+        createdAt: Date.now(),
+      };
+
+      // Built here, from the state as it stands, rather than inside the updater
+      // below. A state updater is not guaranteed to run before this function
+      // continues, so history was still empty when the request went out - and an
+      // empty history is a 422 the dock reported as "Could not reach the
+      // assistant". React sometimes computes an updater eagerly, which is why it
+      // answered often enough to look like a network problem.
+      const history = [...(existing?.messages || []), userMessage].map((message) => ({
+        role: message.role,
+        text: message.text,
+        attachments: (message.attachments || []).map((item) => ({
+          name: item.name,
+          type: item.type,
+          isImage: item.isImage,
+        })),
+      }));
 
       setChats((current) => {
         let working = current;
         let chat = working.find((item) => item.id === chatId);
 
         if (!chat) {
-          chat = createChat(working);
-          chatId = chat.id;
+          chat = { ...createChat(working), id: chatId };
           working = [chat, ...working];
         }
-
-        const userMessage = {
-          id: makeMessageId(),
-          role: "user",
-          text,
-          attachments,
-          createdAt: Date.now(),
-        };
-        history = [...chat.messages, userMessage].map((message) => ({
-          role: message.role,
-          text: message.text,
-          attachments: (message.attachments || []).map((item) => ({
-            name: item.name,
-            type: item.type,
-            isImage: item.isImage,
-          })),
-        }));
 
         return working.map((item) =>
           item.id === chatId
@@ -180,7 +186,7 @@ export default function useAssistantChat({ context = null } = {}) {
       setActiveChatId(chatId);
       await runTurn(chatId, history);
     },
-    [activeChatId, isStreaming, runTurn]
+    [activeChatId, chats, isStreaming, runTurn]
   );
 
   // Drops the last answer and asks again from the same history.
