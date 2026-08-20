@@ -17,7 +17,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.config import settings
 from app.services.firebase_auth import FirebaseAuthService
@@ -32,6 +32,15 @@ optional_bearer = HTTPBearer(auto_error=False)
 class AssistantMessage(BaseModel):
     role: str = "user"
     text: str = ""
+
+    # A stored message can carry text: null - an attachment-only turn, or one
+    # restored from an older chat. Rejecting the whole request over it meant the
+    # farmer saw "Could not reach the assistant" with nothing wrong at all, so a
+    # null is read as the empty string it means.
+    @field_validator("role", "text", mode="before")
+    @classmethod
+    def _null_is_empty(cls, value: Any) -> Any:
+        return "" if value is None else value
 
 
 class AssistantChatRequest(BaseModel):
