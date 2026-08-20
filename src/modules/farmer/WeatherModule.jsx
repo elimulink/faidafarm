@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -18,16 +19,8 @@ import {
 } from "../../components/farmer/FarmerShared";
 import TempRangeChart from "../../components/charts/TempRangeChart";
 import WeatherBackdrop from "../../components/weather/WeatherBackdrop";
-import {
-  current,
-  daily,
-  dayLabel,
-  getFarmAdvisories,
-  getHeadlineAdvice,
-  hourly,
-  place,
-  rainfallTotalMm,
-} from "../../data/weatherData";
+import { dayLabel, getFarmAdvisories, getHeadlineAdvice } from "../../data/weatherData";
+import { useWeather } from "../../data/weatherLive";
 
 const CONDITION_ICONS = {
   "Heavy rain": CloudRain,
@@ -41,6 +34,14 @@ const CONDITION_ICONS = {
 
 // A component rather than a lookup assigned to a capitalised variable in a
 // render body, which the React compiler lint rightly flags.
+// Every panel below used to read module-level sample data. They now read the
+// forecast the page fetched, under the same names, so the markup is unchanged.
+const ForecastContext = createContext(null);
+
+function useForecast() {
+  return useContext(ForecastContext);
+}
+
 function ConditionIcon({ condition, className = "" }) {
   const Icon = CONDITION_ICONS[condition] || CloudSun;
   return <Icon className={className} />;
@@ -53,6 +54,8 @@ const STATUS = {
 };
 
 function CurrentConditions({ compact = false }) {
+  const forecast = useForecast();
+  const { current, place } = forecast;
   return (
     <div className="relative overflow-hidden rounded-[26px] border border-[#DCE7F1] bg-gradient-to-b from-[#F3F7FC] to-[#FAFCFE] p-5">
       <WeatherBackdrop condition={current.condition} windKph={current.windKph} />
@@ -79,13 +82,14 @@ function CurrentConditions({ compact = false }) {
       </div>
 
       <p className="relative mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm font-medium leading-6 text-[#2C4A6B] backdrop-blur-[2px]">
-        {getHeadlineAdvice()}
+        {getHeadlineAdvice(forecast)}
       </p>
     </div>
   );
 }
 
 function HourlyStrip() {
+  const { hourly } = useForecast();
   return (
     <div className="-mx-1 overflow-x-auto px-1">
       <div className="flex gap-2">
@@ -112,6 +116,7 @@ function HourlyStrip() {
 }
 
 function DailyRows() {
+  const { daily } = useForecast();
   const maxRain = Math.max(...daily.map((day) => day.rainfallMm), 1);
 
   return (
@@ -174,6 +179,7 @@ function AdvisoryCard({ item }) {
 }
 
 function ConditionTiles() {
+  const { current, rainfallTotalMm } = useForecast();
   const tiles = [
     { icon: Droplets, label: "Humidity", value: `${current.humidity}%` },
     { icon: Wind, label: "Wind", value: `${current.windKph} km/h ${current.windDir}` },
@@ -202,15 +208,22 @@ function ConditionTiles() {
 }
 
 function SampleNote() {
+  const { live, loading } = useForecast();
+
+  if (live) {
+    return null;
+  }
+
   return (
     <p className="mt-4 text-[11px] text-[#A0AA9E]">
-      Sample forecast. A live weather feed arrives with the backend.
+      {loading ? "Loading the live forecast..." : "Sample forecast - the live feed is not reachable."}
     </p>
   );
 }
 
 function DesktopContent() {
-  const advisories = getFarmAdvisories();
+  const forecast = useForecast();
+  const advisories = getFarmAdvisories(forecast);
 
   return (
     <div className="grid grid-cols-12 gap-6">
@@ -229,7 +242,7 @@ function DesktopContent() {
             Next 7 days
           </h3>
           <div className="mt-3">
-            <TempRangeChart days={daily} labelFor={(day, index) => dayLabel(day.date, index)} height={186} />
+            <TempRangeChart days={forecast.daily} labelFor={(day, index) => dayLabel(day.date, index)} height={186} />
           </div>
           <div className="mt-3">
             <DailyRows />
@@ -273,7 +286,8 @@ function MobileSection({ title, children }) {
 }
 
 function MobileContent() {
-  const advisories = getFarmAdvisories();
+  const forecast = useForecast();
+  const advisories = getFarmAdvisories(forecast);
 
   // Deliberately not wrapped in MobileCard: that component is itself a bordered
   // card, so nesting the tinted panels inside it drew a box within a box. Plain
@@ -289,7 +303,7 @@ function MobileContent() {
       </MobileSection>
 
       <MobileSection title="Next 7 days">
-        <TempRangeChart days={daily} labelFor={(day, index) => dayLabel(day.date, index)} />
+        <TempRangeChart days={forecast.daily} labelFor={(day, index) => dayLabel(day.date, index)} />
         <div className="mt-2 border-t border-[#F0F3EE]">
           <DailyRows />
         </div>
@@ -312,14 +326,18 @@ function MobileContent() {
 }
 
 export default function WeatherModule() {
+  const forecast = useWeather();
+
   return (
-    <AppShell
-      current="weather"
-      title="Weather"
-      subtitle={`${place.name}, Kenya`}
-      mobileSubtitle={place.name}
-      desktopContent={<DesktopContent />}
-      mobileContent={<MobileContent />}
-    />
+    <ForecastContext.Provider value={forecast}>
+      <AppShell
+        current="weather"
+        title="Weather"
+        subtitle={`${forecast.place.name}, Kenya`}
+        mobileSubtitle={forecast.place.name}
+        desktopContent={<DesktopContent />}
+        mobileContent={<MobileContent />}
+      />
+    </ForecastContext.Provider>
   );
 }

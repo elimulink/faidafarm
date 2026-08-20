@@ -75,7 +75,7 @@ export function dayLabel(date, index) {
 // The farm advisories. Each one is a rule over the forecast numbers, so a page
 // can never claim it is a good day to spray when the wind says otherwise.
 
-function sprayAdvice() {
+function sprayAdvice({ current, hourly, daily }) {
   const window = hourly.slice(0, 6);
   const calm = window.every((hour) => hour.rain < 30);
   const windOk = current.windKph < 15;
@@ -105,7 +105,7 @@ function sprayAdvice() {
   };
 }
 
-function dryingAdvice() {
+function dryingAdvice({ daily }) {
   const tomorrow = daily[1];
   const firstDry = daily.findIndex((day) => day.rainfallMm === 0 && day.humidity < 60);
 
@@ -130,7 +130,7 @@ function dryingAdvice() {
   };
 }
 
-function plantingAdvice() {
+function plantingAdvice({ daily }) {
   const comingRain = daily.slice(0, 3).reduce((total, day) => total + day.rainfallMm, 0);
 
   if (comingRain >= 30) {
@@ -152,7 +152,7 @@ function plantingAdvice() {
   };
 }
 
-function diseaseAdvice() {
+function diseaseAdvice({ daily }) {
   const wetDays = daily.slice(0, 4).filter((day) => day.humidity >= 80).length;
 
   if (wetDays >= 2) {
@@ -174,16 +174,28 @@ function diseaseAdvice() {
   };
 }
 
-export function getFarmAdvisories() {
-  return [sprayAdvice(), dryingAdvice(), plantingAdvice(), diseaseAdvice()];
+// The sample forecast, for callers that have no live data yet.
+export const sampleForecast = { current, hourly, daily, rainfallTotalMm };
+
+export function getFarmAdvisories(data = sampleForecast) {
+  if (!data?.current || !data?.hourly?.length || !data?.daily?.length) {
+    return [];
+  }
+  return [sprayAdvice(data), dryingAdvice(data), plantingAdvice(data), diseaseAdvice(data)];
 }
 
 // The one line that belongs at the top of the page.
-export function getHeadlineAdvice() {
-  const heavy = daily.findIndex((day) => day.rainfallMm >= 20);
-  if (heavy >= 0) {
-    return `${daily[heavy].rainfallMm} mm of rain expected ${dayLabel(daily[heavy].date, heavy).toLowerCase()}. Cover anything that is drying.`;
+export function getHeadlineAdvice(data = sampleForecast) {
+  const days = data?.daily || [];
+  if (!days.length) {
+    return "";
   }
 
-  return `${rainfallTotalMm} mm expected over the next seven days.`;
+  const heavy = days.findIndex((day) => day.rainfallMm >= 20);
+  if (heavy >= 0) {
+    return `${days[heavy].rainfallMm} mm of rain expected ${dayLabel(days[heavy].date, heavy).toLowerCase()}. Cover anything that is drying.`;
+  }
+
+  const total = data?.rainfallTotalMm ?? days.reduce((sum, day) => sum + (day.rainfallMm || 0), 0);
+  return `${Math.round(total * 10) / 10} mm expected over the next seven days.`;
 }
