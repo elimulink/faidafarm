@@ -1,31 +1,30 @@
 services:
   - type: web
-    name: faidafarm-fmnr-api
-    env: python
+    name: faidafarm-api
+    runtime: python
     rootDir: backend
     plan: starter
+    region: frankfurt
+    healthCheckPath: /health
     buildCommand: pip install -r requirements.txt
-    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    preDeployCommand: alembic upgrade head
+    startCommand: gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT --forwarded-allow-ips="*" --timeout 120
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: faidafarm-fmnr-db
-          property: connectionString
-      - key: FIREBASE_PROJECT_ID
         sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/firebase-service-account.json
+      - key: FIREBASE_PROJECT_ID
+        value: faidafarm-baa26
       - key: FRONTEND_URL
         sync: false
       - key: LOG_LEVEL
         value: INFO
-      - key: KOBO_BASE_URL
-        sync: false
-      - key: KOBO_API_TOKEN
-        sync: false
-      - key: KOBO_PROJECT_ID
-        sync: false
-
-databases:
-  - name: faidafarm-fmnr-db
-    plan: starter
+      - key: DB_POOL_SIZE
+        value: 5
+      - key: DB_MAX_OVERFLOW
+        value: 10
