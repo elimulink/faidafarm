@@ -12,7 +12,20 @@
           "package_name": "com.faidafarm.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "885156990402-jnv2cnc78qbvnqoeiug484ubic7k7c8c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.faidafarm.app",
+            "certificate_hash": "4ea2ee1ded0559b40b8628eabead7c4a1272dd89"
+          }
+        },
+        {
+          "client_id": "885156990402-rv4fmdveno0uvq6jl51aqm5d4pkqlnae.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD7SWwCuNpj2-928s_N0ZQzTat2aD9wqmA"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "885156990402-rv4fmdveno0uvq6jl51aqm5d4pkqlnae.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

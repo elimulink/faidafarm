@@ -15,7 +15,20 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createMockUser, setStoredUser } from "../../auth/session";
+import { AuthNotConfiguredError, signInWithGoogle } from "../../auth/googleAuth";
+import { isApiConfigured, verifySession } from "../../lib/apiClient";
 import { RESEARCH_WORKSPACE_ENABLED } from "../../config/features";
+
+function GoogleMark() {
+  return (
+    <svg className="h-[18px] w-[18px]" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.7 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.2 5.3-4.6 7l7.1 5.5c4.2-3.8 6.6-9.5 6.6-17z" />
+      <path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-2.9-.8-4.7s.3-3.3.8-4.7l-7.8-6.1C1 16.3 0 20 0 24s1 7.7 2.6 10.8l7.8-6.1z" />
+      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.1-5.5c-2 1.3-4.6 2.1-8.8 2.1-6.3 0-11.7-3.7-13.6-9.1l-7.8 6.1C6.5 42.6 14.6 48 24 48z" />
+    </svg>
+  );
+}
 
 export default function FarmerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +37,50 @@ export default function FarmerLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleError, setGoogleError] = useState("");
   const navigate = useNavigate();
+
+  async function handleGoogleSignIn() {
+    setGoogleError("");
+    setGoogleBusy(true);
+
+    try {
+      const { idToken, profile } = await signInWithGoogle();
+
+      // When the backend is reachable it decides who this user is; the client
+      // only carries the token. Until then the verified Google profile is
+      // enough to get into the app.
+      let account = null;
+      if (isApiConfigured()) {
+        const verified = await verifySession(idToken);
+        account = verified?.user || null;
+      }
+
+      setStoredUser({
+        id: account?.id || profile.uid,
+        role: account?.role || "farmer",
+        name: account?.full_name || profile.name || "Farmer",
+        email: account?.email || profile.email,
+        county: account?.county || "",
+        organization: "",
+        crops: [],
+        loginMode: "google",
+        photoUrl: profile.photoUrl,
+      });
+
+      // The crop guard sends them to setup if they have none recorded.
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      setGoogleError(
+        error instanceof AuthNotConfiguredError
+          ? error.message
+          : error?.message || "Google sign-in did not complete. Please try again."
+      );
+    } finally {
+      setGoogleBusy(false);
+    }
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -57,6 +113,9 @@ export default function FarmerLoginPage() {
     <div className="min-h-screen bg-[#F6F8F4]">
       <div className="mx-auto flex min-h-[100svh] w-full max-w-[1440px]">
         <DesktopLogin
+          googleBusy={googleBusy}
+          googleError={googleError}
+          onGoogleSignIn={handleGoogleSignIn}
           email={email}
           handleSubmit={handleSubmit}
           loginMode={loginMode}
@@ -71,6 +130,9 @@ export default function FarmerLoginPage() {
           showPassword={showPassword}
         />
         <MobileLogin
+          googleBusy={googleBusy}
+          googleError={googleError}
+          onGoogleSignIn={handleGoogleSignIn}
           email={email}
           handleSubmit={handleSubmit}
           loginMode={loginMode}
@@ -199,6 +261,9 @@ function WorkspaceChoiceCard({ icon, title, description, buttonLabel, onClick, a
 }
 
 function DesktopLogin({
+  googleBusy,
+  googleError,
+  onGoogleSignIn,
   email,
   handleSubmit,
   loginMode,
@@ -354,10 +419,19 @@ function DesktopLogin({
 
               <button
                 type="button"
-                className="w-full rounded-2xl border border-[#D8DED5] bg-white px-5 py-3.5 text-[15px] font-semibold text-[#223022] transition hover:bg-[#F8FAF7]"
+                onClick={onGoogleSignIn}
+                disabled={googleBusy}
+                className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#D8DED5] bg-white px-5 py-3.5 text-[15px] font-semibold text-[#223022] transition hover:bg-[#F8FAF7] disabled:opacity-60"
               >
-                Login with Google
+                <GoogleMark />
+                {googleBusy ? "Signing in..." : "Continue with Google"}
               </button>
+
+              {googleError ? (
+                <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
+                  {googleError}
+                </p>
+              ) : null}
             </form>
 
             <div className="mt-5 rounded-2xl border border-[#E6EEE2] bg-[#F8FBF6] px-4 py-3 xl:mt-6">
@@ -390,6 +464,9 @@ function DesktopLogin({
 }
 
 function MobileLogin({
+  googleBusy,
+  googleError,
+  onGoogleSignIn,
   email,
   handleSubmit,
   loginMode,
@@ -488,10 +565,19 @@ function MobileLogin({
 
             <button
               type="button"
-              className="w-full rounded-2xl border border-[#D8DED5] bg-white px-5 py-3.5 text-[15px] font-semibold text-[#223022]"
+              onClick={onGoogleSignIn}
+              disabled={googleBusy}
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#D8DED5] bg-white px-5 py-3.5 text-[15px] font-semibold text-[#223022] disabled:opacity-60"
             >
-              Login with Google
+              <GoogleMark />
+              {googleBusy ? "Signing in..." : "Continue with Google"}
             </button>
+
+            {googleError ? (
+              <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
+                {googleError}
+              </p>
+            ) : null}
           </form>
 
           <div className="mt-5 rounded-2xl border border-[#E6EEE2] bg-[#F8FBF6] px-4 py-3">
