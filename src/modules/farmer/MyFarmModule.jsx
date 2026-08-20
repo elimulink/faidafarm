@@ -9,17 +9,41 @@ import {
 import CropPicker from "../../components/farmer/CropPicker";
 import { farmCrops as cropDetails } from "../../data/farmerDashboardData";
 import { getCrops } from "../../data/cropCatalogue";
+import { adaptCrops } from "../../data/adapters";
+import { useApiData } from "../../lib/useApiData";
 import { loadFarmCrops, saveFarmCrops } from "../../farm/cropStorage";
 
 // Agronomic detail exists as mock data for the two crops the demo farm grows.
 // Anything the farmer adds beyond those shows without it until the backend can
 // supply real records, rather than inventing numbers.
-function detailFor(crop) {
-  return cropDetails.find((item) => item.name.toLowerCase() === crop.name.toLowerCase()) || null;
+function matchByName(list, crop) {
+  return (list || []).find((item) => item.name?.toLowerCase() === crop.name?.toLowerCase()) || null;
+}
+
+// Recorded crops carry acreage and a harvest date but no growth stage or health,
+// which the backend does not model. The mock fills those in for the demo farm;
+// where a real record exists its numbers take precedence.
+function detailFor(crop, recorded = []) {
+  const live = matchByName(recorded, crop);
+  const mock = matchByName(cropDetails, crop);
+
+  if (!live) {
+    return mock;
+  }
+
+  return {
+    ...mock,
+    ...Object.fromEntries(Object.entries(live).filter(([, value]) => value != null && value !== "")),
+  };
 }
 
 function useFarmCrops() {
   const [cropIds, setCropIds] = useState(() => loadFarmCrops());
+
+  // Which crops the farmer grows stays local: it is chosen offline during
+  // onboarding and must survive with no signal. What the backend adds is the
+  // recorded detail for them - acreage, harvest date - when it has any.
+  const { data: recorded } = useApiData("/farmer/crops", { adapt: adaptCrops, fallback: [] });
 
   const commit = useCallback((next) => {
     setCropIds(next);
@@ -28,7 +52,7 @@ function useFarmCrops() {
 
   const crops = useMemo(() => getCrops(cropIds), [cropIds]);
 
-  return { cropIds, crops, commit };
+  return { cropIds, crops, commit, recorded: recorded || [] };
 }
 
 function AddCropSheet({ open, selected, onClose, onSave }) {
@@ -108,8 +132,8 @@ function EmptyCrops({ onAdd }) {
   );
 }
 
-function CropRow({ crop, onRemove, compact = false }) {
-  const detail = detailFor(crop);
+function CropRow({ crop, onRemove, compact = false, recorded = [] }) {
+  const detail = detailFor(crop, recorded);
 
   return (
     <div className="overflow-hidden rounded-[24px] border border-[#EEF2EC]">
@@ -183,9 +207,9 @@ function CropRow({ crop, onRemove, compact = false }) {
   );
 }
 
-function nearestHarvest(crops) {
+function nearestHarvest(crops, recorded = []) {
   const days = crops
-    .map((crop) => detailFor(crop))
+    .map((crop) => detailFor(crop, recorded))
     .filter(Boolean)
     .map((detail) => Number.parseInt(detail.harvestIn, 10))
     .filter((value) => Number.isFinite(value));
@@ -194,7 +218,7 @@ function nearestHarvest(crops) {
 }
 
 function FarmContent({ compact = false }) {
-  const { cropIds, crops, commit } = useFarmCrops();
+  const { cropIds, crops, commit, recorded } = useFarmCrops();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const remove = (cropId) => commit(cropIds.filter((id) => id !== cropId));
@@ -202,7 +226,7 @@ function FarmContent({ compact = false }) {
   const cropList = crops.length ? (
     <div className="space-y-4">
       {crops.map((crop) => (
-        <CropRow key={crop.id} crop={crop} onRemove={remove} compact={compact} />
+        <CropRow key={crop.id} crop={crop} onRemove={remove} compact={compact} recorded={recorded} />
       ))}
     </div>
   ) : (
@@ -231,7 +255,7 @@ function FarmContent({ compact = false }) {
       <div className="rounded-2xl border border-[#EEF2EC] p-4">
         <p className="text-sm text-[#667164]">Nearest harvest</p>
         <p className={`mt-2 font-bold text-[#182118] ${compact ? "text-2xl" : "text-3xl"}`}>
-          {nearestHarvest(crops)}
+          {nearestHarvest(crops, recorded)}
         </p>
       </div>
       <div className="rounded-2xl border border-[#EEF2EC] p-4">

@@ -15,6 +15,8 @@ import {
   markets,
 } from "../../data/marketData";
 import { farmOverview } from "../../data/farmerDashboardData";
+import { adaptMarketPrices } from "../../data/adapters";
+import { useApiData } from "../../lib/useApiData";
 import { getPrimaryCropName } from "../../farm/cropStorage";
 
 const RANGES = [
@@ -25,11 +27,39 @@ const RANGES = [
 
 function useMarket(rangeDays) {
   const crop = getPrimaryCropName(farmOverview.cropName);
+  const { data, live, loading, error } = useApiData(
+    `/farmer/market-prices?crop_name=${encodeURIComponent(crop)}&limit=100`,
+    { adapt: adaptMarketPrices }
+  );
 
   return useMemo(() => {
+    // Recorded prices win. Falling back to the sample series keeps the chart
+    // drawn, and SampleDataNote below says so rather than passing it off as real.
+    if (live && data?.length) {
+      const rows = [...data].sort((a, b) => a.date - b.date);
+      const series = rows.map((row) => ({ date: row.date, price: row.price }));
+      return {
+        series: series.slice(-rangeDays),
+        stats: getPriceStats(series, rangeDays),
+        unit: rows[rows.length - 1].unit,
+        crop,
+        live: true,
+        loading,
+        error,
+      };
+    }
+
     const { series: full, unit } = getPriceSeriesForCrop(crop);
-    return { series: full.slice(-rangeDays), stats: getPriceStats(full, rangeDays), unit, crop };
-  }, [crop, rangeDays]);
+    return {
+      series: full.slice(-rangeDays),
+      stats: getPriceStats(full, rangeDays),
+      unit,
+      crop,
+      live: false,
+      loading,
+      error,
+    };
+  }, [crop, rangeDays, data, live, loading, error]);
 }
 
 function PriceHeadline({ stats, crop, unit, compact = false }) {
@@ -85,17 +115,23 @@ function RangeTabs({ value, onChange }) {
   );
 }
 
-function SampleDataNote() {
+function SampleDataNote({ live = false, loading = false }) {
+  if (live) {
+    return null;
+  }
+
   return (
     <p className="mt-3 text-[11px] text-[#A0AA9E]">
-      Sample prices. Live market data arrives when the backend is connected.
+      {loading
+        ? "Loading recorded prices..."
+        : "Sample prices - no recorded prices for this crop yet."}
     </p>
   );
 }
 
 function DesktopContent() {
   const [rangeDays, setRangeDays] = useState(7);
-  const { series, stats, unit } = useMarket(rangeDays);
+  const { series, stats, unit, live, loading } = useMarket(rangeDays);
   const crop = getPrimaryCropName(farmOverview.cropName);
 
   return (
@@ -115,7 +151,7 @@ function DesktopContent() {
           <div className="mt-5">
             <ActionButton to="/sell-smart">See what this means for selling</ActionButton>
           </div>
-          <SampleDataNote />
+          <SampleDataNote live={live} loading={loading} />
         </Card>
       </div>
 
@@ -160,7 +196,7 @@ function MobileSection({ title, subtitle, children }) {
 
 function MobileContent() {
   const [rangeDays, setRangeDays] = useState(7);
-  const { series, stats, unit, crop } = useMarket(rangeDays);
+  const { series, stats, unit, crop, live, loading } = useMarket(rangeDays);
 
   // Plain sections rather than MobileCard: that component is a bordered card,
   // so wrapping each block in one drew a box inside a box down the page.
@@ -174,7 +210,7 @@ function MobileContent() {
         <div className="mt-3">
           <PriceTrendChart series={series} unit={unit} height={180} label={`${crop} price`} />
         </div>
-        <SampleDataNote />
+        <SampleDataNote live={live} loading={loading} />
       </MobileSection>
 
       <MobileSection

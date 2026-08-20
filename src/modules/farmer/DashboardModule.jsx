@@ -19,7 +19,9 @@ import {
 import { getPrimaryCropName } from "../../farm/cropStorage";
 import PriceTrendChart from "../../components/charts/PriceTrendChart";
 import { PRICE_UNIT, getMarketInsight, getPriceStats, priceHistory } from "../../data/marketData";
-import { SEVERITIES, alerts as farmAlerts, formatAlertAge } from "../../data/alertsData";
+import { SEVERITIES, alerts as sampleAlerts, formatAlertAge } from "../../data/alertsData";
+import { adaptAlerts } from "../../data/adapters";
+import { useApiData } from "../../lib/useApiData";
 
 function TodayHero({ compact = false }) {
   const stats = getPriceStats(priceHistory, 7);
@@ -328,6 +330,14 @@ function Timeline() {
 }
 
 function RecentAlerts() {
+  // Same three alerts the Alerts page shows, from the same endpoint, so the two
+  // screens cannot disagree about what is urgent.
+  const { data, loading, error } = useApiData("/farmer/alerts", {
+    adapt: adaptAlerts,
+    fallback: sampleAlerts,
+  });
+  const recent = (data || []).slice(0, 3);
+
   return (
     <Card>
       <div className="flex items-center justify-between">
@@ -338,7 +348,7 @@ function RecentAlerts() {
       </div>
 
       <div className="mt-5 space-y-3">
-        {farmAlerts.slice(0, 3).map((alert) => {
+        {recent.map((alert) => {
           const severity = SEVERITIES[alert.severity];
           return (
             <Link
@@ -361,6 +371,12 @@ function RecentAlerts() {
             </Link>
           );
         })}
+
+        {recent.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-[#EEF2EC] px-4 py-5 text-center text-sm text-[#667164]">
+            {loading ? "Checking for alerts..." : error || "No alerts right now."}
+          </p>
+        ) : null}
       </div>
     </Card>
   );

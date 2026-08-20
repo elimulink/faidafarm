@@ -19,11 +19,13 @@ import {
 } from "../../components/farmer/FarmerShared";
 import {
   SEVERITIES,
-  alerts as allAlerts,
+  alerts as sampleAlerts,
   formatAlertAge,
   loadReadAlerts,
   saveReadAlerts,
 } from "../../data/alertsData";
+import { adaptAlerts } from "../../data/adapters";
+import { useApiData } from "../../lib/useApiData";
 
 const CATEGORY_ICONS = {
   Weather: CloudRain,
@@ -46,13 +48,20 @@ function useAlerts() {
   const [readIds, setReadIds] = useState(() => loadReadAlerts());
   const [filter, setFilter] = useState("all");
 
+  // No fallback on error: a stale sample alert telling a farmer to cover produce
+  // for rain that is not coming is worse than showing nothing.
+  const { data, live, loading, error } = useApiData("/farmer/alerts", {
+    adapt: adaptAlerts,
+    fallback: sampleAlerts,
+  });
+
   const sorted = useMemo(
     () =>
-      [...allAlerts].sort(
+      [...(data || [])].sort(
         (a, b) =>
           SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || b.createdAt - a.createdAt
       ),
-    []
+    [data]
   );
 
   const visible = useMemo(() => {
@@ -84,7 +93,7 @@ function useAlerts() {
     saveReadAlerts(next);
   };
 
-  return { filter, setFilter, visible, readIds, unreadCount, markRead, markAllRead, total: sorted.length };
+  return { filter, setFilter, visible, readIds, unreadCount, markRead, markAllRead, total: sorted.length, live, loading, error };
 }
 
 function FilterChips({ value, onChange, unreadCount }) {
@@ -201,9 +210,17 @@ function AlertsList({ compact = false }) {
   ) : (
     <div className="rounded-[24px] border border-dashed border-[#D8E2D4] bg-[#FAFCF9] px-6 py-10 text-center">
       <CheckCheck className="mx-auto h-7 w-7 text-[#2F8F46]" />
-      <p className="mt-2 text-sm font-semibold text-[#182118]">Nothing here</p>
+      <p className="mt-2 text-sm font-semibold text-[#182118]">
+        {state.loading ? "Checking for alerts" : state.error ? "Alerts unavailable" : "Nothing here"}
+      </p>
       <p className="mt-1 text-sm text-[#667164]">
-        {state.filter === "unread" ? "You are up to date." : "No alerts in this category."}
+        {state.loading
+          ? "One moment."
+          : state.error
+            ? state.error
+            : state.filter === "unread"
+              ? "You are up to date."
+              : "No alerts in this category."}
       </p>
     </div>
   );
