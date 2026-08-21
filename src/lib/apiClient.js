@@ -5,7 +5,7 @@
 // a forced refresh before being reported, which covers the common case of a
 // token that expired between being fetched and being used.
 
-import { getIdToken } from "../auth/googleAuth";
+import { getIdToken } from "../auth/firebaseAuth";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const PREFIX = "/api/v1";

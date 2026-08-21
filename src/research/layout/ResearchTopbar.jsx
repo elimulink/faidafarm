@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { clearStoredUser } from "../../auth/session";
+import { endSession } from "../../auth/startSession";
 import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../../auth/access";
 
 function BrandMark({ compact = false }) {
@@ -162,7 +162,7 @@ function MobileMenuDrawer({
           <button
             type="button"
             onClick={() => {
-              clearStoredUser();
+              endSession();
               onClose();
               navigate("/login");
             }}
@@ -259,7 +259,7 @@ export default function ResearchTopbar({ user }) {
                     <button
                       type="button"
                       onClick={() => {
-                        clearStoredUser();
+                        endSession();
                         setIsProfileMenuOpen(false);
                         navigate("/login");
                       }}

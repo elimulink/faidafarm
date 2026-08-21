@@ -9,14 +9,13 @@ import {
   Leaf,
   Lock,
   Mail,
-  Phone,
   ShieldCheck,
   Sprout,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { createMockUser, setStoredUser } from "../../auth/session";
-import { AuthNotConfiguredError, signInWithGoogle } from "../../auth/googleAuth";
-import { isApiConfigured, verifySession } from "../../lib/apiClient";
+import { getStoredUser, setStoredUser } from "../../auth/session";
+import { describeAuthError, signInWithEmail, signInWithGoogle } from "../../auth/firebaseAuth";
+import { startSession } from "../../auth/startSession";
 import { RESEARCH_WORKSPACE_ENABLED } from "../../config/features";
 
 function GoogleMark() {
@@ -32,71 +31,61 @@ function GoogleMark() {
 
 export default function FarmerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loginMode, setLoginMode] = useState("phone");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
-  const [googleBusy, setGoogleBusy] = useState(false);
-  const [googleError, setGoogleError] = useState("");
+  // Which button is working, so only that one wears a busy label.
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  async function handleGoogleSignIn() {
-    setGoogleError("");
-    setGoogleBusy(true);
+  // Both ways in end the same: Firebase proves who this is, the backend turns
+  // that into a FaidaFarm session, and only then does anything navigate.
+  async function completeSignIn(runSignIn, source) {
+    setError("");
+    setBusy(source);
 
     try {
-      const { idToken, profile } = await signInWithGoogle();
+      const { idToken, profile } = await runSignIn();
+      await startSession({ idToken, profile, loginMode: source });
 
-      // When the backend is reachable it decides who this user is; the client
-      // only carries the token. Until then the verified Google profile is
-      // enough to get into the app.
-      let account = null;
-      if (isApiConfigured()) {
-        const verified = await verifySession(idToken);
-        account = verified?.user || null;
+      if (RESEARCH_WORKSPACE_ENABLED) {
+        setShowWorkspaceModal(true);
+        return;
       }
-
-      setStoredUser({
-        id: account?.id || profile.uid,
-        role: account?.role || "farmer",
-        name: account?.full_name || profile.name || "Farmer",
-        email: account?.email || profile.email,
-        county: account?.county || "",
-        organization: "",
-        crops: [],
-        loginMode: "google",
-        photoUrl: profile.photoUrl,
-      });
 
       // The crop guard sends them to setup if they have none recorded.
       navigate("/dashboard", { replace: true });
-    } catch (error) {
-      setGoogleError(
-        error instanceof AuthNotConfiguredError
-          ? error.message
-          : error?.message || "Google sign-in did not complete. Please try again."
-      );
+    } catch (signInError) {
+      setError(describeAuthError(signInError));
     } finally {
-      setGoogleBusy(false);
+      setBusy("");
     }
   }
 
   function handleSubmit(event) {
     event.preventDefault();
 
-    if (!RESEARCH_WORKSPACE_ENABLED) {
-      handleWorkspaceSelect("farmer");
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
       return;
     }
 
-    setShowWorkspaceModal(true);
+    completeSignIn(() => signInWithEmail({ email, password }), "email");
   }
 
+  function handleGoogleSignIn() {
+    completeSignIn(() => signInWithGoogle(), "google");
+  }
+
+  // Development only. The account is real by this point; the picker just says
+  // which workspace to open it in.
   function handleWorkspaceSelect(preferredRole) {
-    // Placeholder auth flow until real backend authentication is connected.
-    const user = createMockUser({ loginMode, email, phone, preferredRole });
-    setStoredUser(user);
+    const user = getStoredUser();
+    if (user) {
+      setStoredUser({ ...user, role: preferredRole });
+    }
+
     setShowWorkspaceModal(false);
     navigate(
       preferredRole === "farmer"
@@ -105,47 +94,30 @@ export default function FarmerLoginPage() {
           ? "/research/admin"
           : preferredRole === "field_officer"
             ? "/research/field"
-            : "/research"
+            : "/research",
+      { replace: true }
     );
   }
+
+  const shared = {
+    busy,
+    error,
+    onGoogleSignIn: handleGoogleSignIn,
+    email,
+    handleSubmit,
+    navigate,
+    password,
+    setEmail,
+    setPassword,
+    setShowPassword,
+    showPassword,
+  };
 
   return (
     <div className="min-h-screen bg-[#F6F8F4]">
       <div className="mx-auto flex min-h-[100svh] w-full max-w-[1440px]">
-        <DesktopLogin
-          googleBusy={googleBusy}
-          googleError={googleError}
-          onGoogleSignIn={handleGoogleSignIn}
-          email={email}
-          handleSubmit={handleSubmit}
-          loginMode={loginMode}
-          navigate={navigate}
-          password={password}
-          phone={phone}
-          setEmail={setEmail}
-          setLoginMode={setLoginMode}
-          setPassword={setPassword}
-          setPhone={setPhone}
-          setShowPassword={setShowPassword}
-          showPassword={showPassword}
-        />
-        <MobileLogin
-          googleBusy={googleBusy}
-          googleError={googleError}
-          onGoogleSignIn={handleGoogleSignIn}
-          email={email}
-          handleSubmit={handleSubmit}
-          loginMode={loginMode}
-          navigate={navigate}
-          password={password}
-          phone={phone}
-          setEmail={setEmail}
-          setLoginMode={setLoginMode}
-          setPassword={setPassword}
-          setPhone={setPhone}
-          setShowPassword={setShowPassword}
-          showPassword={showPassword}
-        />
+        <DesktopLogin {...shared} />
+        <MobileLogin {...shared} />
       </div>
       {RESEARCH_WORKSPACE_ENABLED && showWorkspaceModal ? (
         <WorkspacePickerModal
@@ -261,19 +233,15 @@ function WorkspaceChoiceCard({ icon, title, description, buttonLabel, onClick, a
 }
 
 function DesktopLogin({
-  googleBusy,
-  googleError,
+  busy,
+  error,
   onGoogleSignIn,
   email,
   handleSubmit,
-  loginMode,
   navigate,
   password,
-  phone,
   setEmail,
-  setLoginMode,
   setPassword,
-  setPhone,
   setShowPassword,
   showPassword,
 }) {
@@ -361,28 +329,15 @@ function DesktopLogin({
               </p>
             </div>
 
-            <LoginModeToggle loginMode={loginMode} setLoginMode={setLoginMode} />
-
-            <form className="mt-5 space-y-4 xl:mt-6" onSubmit={handleSubmit}>
-              {loginMode === "phone" ? (
-                <InputField
-                  icon={Phone}
-                  label="Phone number"
-                  onChange={setPhone}
-                  placeholder="+254 7XX XXX XXX"
-                  type="tel"
-                  value={phone}
-                />
-              ) : (
-                <InputField
-                  icon={Mail}
-                  label="Email address"
-                  onChange={setEmail}
-                  placeholder="you@example.com"
-                  type="email"
-                  value={email}
-                />
-              )}
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <InputField
+                icon={Mail}
+                label="Email address"
+                onChange={setEmail}
+                placeholder="you@example.com"
+                type="email"
+                value={email}
+              />
 
               <PasswordField
                 onChange={setPassword}
@@ -411,25 +366,26 @@ function DesktopLogin({
 
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-3.5 text-[15px] font-semibold text-white transition hover:bg-[#14582D]"
+                disabled={Boolean(busy)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-3.5 text-[15px] font-semibold text-white transition hover:bg-[#14582D] disabled:opacity-60"
               >
-                Login
-                <ArrowRight className="h-4 w-4" />
+                {busy === "email" ? "Signing in..." : "Login"}
+                {busy === "email" ? null : <ArrowRight className="h-4 w-4" />}
               </button>
 
               <button
                 type="button"
                 onClick={onGoogleSignIn}
-                disabled={googleBusy}
+                disabled={Boolean(busy)}
                 className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#D8DED5] bg-white px-5 py-3.5 text-[15px] font-semibold text-[#223022] transition hover:bg-[#F8FAF7] disabled:opacity-60"
               >
                 <GoogleMark />
-                {googleBusy ? "Signing in..." : "Continue with Google"}
+                {busy === "google" ? "Signing in..." : "Continue with Google"}
               </button>
 
-              {googleError ? (
+              {error ? (
                 <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
-                  {googleError}
+                  {error}
                 </p>
               ) : null}
             </form>
@@ -464,19 +420,15 @@ function DesktopLogin({
 }
 
 function MobileLogin({
-  googleBusy,
-  googleError,
+  busy,
+  error,
   onGoogleSignIn,
   email,
   handleSubmit,
-  loginMode,
   navigate,
   password,
-  phone,
   setEmail,
-  setLoginMode,
   setPassword,
-  setPhone,
   setShowPassword,
   showPassword,
 }) {
@@ -504,30 +456,16 @@ function MobileLogin({
 
       <div className="-mt-3 flex-1 px-4 pb-7">
         <div className="rounded-[24px] border border-[#E7ECE5] bg-white p-4 shadow-[0_8px_24px_rgba(25,40,20,0.05)]">
-          <LoginModeToggle compact loginMode={loginMode} setLoginMode={setLoginMode} />
-
-          <form className="mt-5 space-y-3.5" onSubmit={handleSubmit}>
-            {loginMode === "phone" ? (
-              <InputField
-                icon={Phone}
-                label="Phone number"
-                mobile
-                onChange={setPhone}
-                placeholder="+254 7XX XXX XXX"
-                type="tel"
-                value={phone}
-              />
-            ) : (
-              <InputField
-                icon={Mail}
-                label="Email address"
-                mobile
-                onChange={setEmail}
-                placeholder="you@example.com"
-                type="email"
-                value={email}
-              />
-            )}
+          <form className="space-y-3.5" onSubmit={handleSubmit}>
+            <InputField
+              icon={Mail}
+              label="Email address"
+              mobile
+              onChange={setEmail}
+              placeholder="you@example.com"
+              type="email"
+              value={email}
+            />
 
             <PasswordField
               mobile
@@ -557,25 +495,26 @@ function MobileLogin({
 
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-3.5 text-[15px] font-semibold text-white"
+              disabled={Boolean(busy)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-3.5 text-[15px] font-semibold text-white disabled:opacity-60"
             >
-              Login
-              <ArrowRight className="h-4 w-4" />
+              {busy === "email" ? "Signing in..." : "Login"}
+              {busy === "email" ? null : <ArrowRight className="h-4 w-4" />}
             </button>
 
             <button
               type="button"
               onClick={onGoogleSignIn}
-              disabled={googleBusy}
+              disabled={Boolean(busy)}
               className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#D8DED5] bg-white px-5 py-3.5 text-[15px] font-semibold text-[#223022] disabled:opacity-60"
             >
               <GoogleMark />
-              {googleBusy ? "Signing in..." : "Continue with Google"}
+              {busy === "google" ? "Signing in..." : "Continue with Google"}
             </button>
 
-            {googleError ? (
+            {error ? (
               <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
-                {googleError}
+                {error}
               </p>
             ) : null}
           </form>
@@ -605,33 +544,6 @@ function MobileLogin({
   );
 }
 
-function LoginModeToggle({ loginMode, setLoginMode, compact = false }) {
-  return (
-    <div className="rounded-2xl bg-[#F4F7F2] p-1">
-      <div className="grid grid-cols-2 gap-1">
-        <button
-          type="button"
-          onClick={() => setLoginMode("phone")}
-          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            loginMode === "phone" ? "bg-white text-[#1E2720] shadow-sm" : "text-[#667164]"
-          } ${compact ? "py-2.5" : ""}`}
-        >
-          Phone Login
-        </button>
-        <button
-          type="button"
-          onClick={() => setLoginMode("email")}
-          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            loginMode === "email" ? "bg-white text-[#1E2720] shadow-sm" : "text-[#667164]"
-          } ${compact ? "py-2.5" : ""}`}
-        >
-          Email Login
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function InputField({
   label,
   onChange,
@@ -655,6 +567,9 @@ function InputField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="email"
           className="w-full bg-transparent text-[15px] text-[#1E2720] placeholder:text-[#8A9488] outline-none"
         />
       </div>
@@ -677,6 +592,7 @@ function PasswordField({ showPassword, setShowPassword, password, onChange, mobi
           value={password}
           onChange={(event) => onChange(event.target.value)}
           placeholder="Enter your password"
+          autoComplete="current-password"
           className="w-full bg-transparent text-[15px] text-[#1E2720] placeholder:text-[#8A9488] outline-none"
         />
         <button

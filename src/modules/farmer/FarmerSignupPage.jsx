@@ -6,40 +6,55 @@ import {
   Lock,
   Mail,
   MapPin,
-  Phone,
   ShieldCheck,
   User,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { createMockUser, setStoredUser } from "../../auth/session";
+import { describeAuthError, signInWithGoogle, signUpWithEmail } from "../../auth/firebaseAuth";
+import { startSession } from "../../auth/startSession";
 
 export default function FarmerSignupPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [signupMode, setSignupMode] = useState("phone");
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
   const [password, setPassword] = useState("");
+  // Which button is working, so only that one wears a busy label.
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  // Firebase creates the account and keeps the password; the backend turns the
+  // resulting token into a FaidaFarm user. Crops are required, so a new account
+  // goes to crop setup rather than straight to the dashboard.
+  async function createAccount(runSignUp, source) {
+    setError("");
+    setBusy(source);
+
+    try {
+      const { idToken, profile } = await runSignUp();
+      await startSession({ idToken, profile, loginMode: source, county: location });
+      navigate("/setup-crops", { replace: true });
+    } catch (signUpError) {
+      setError(describeAuthError(signUpError, "Could not create the account. Please try again."));
+    } finally {
+      setBusy("");
+    }
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
 
-    // Placeholder signup flow until backend auth is connected. A user has to be
-    // stored or the farmer routes bounce straight back to onboarding.
-    setStoredUser(
-      createMockUser({
-        loginMode: email ? "email" : "phone",
-        email,
-        phone,
-        preferredRole: "farmer",
-        name: fullName,
-        county: location,
-      })
-    );
-    // Crops are required, so a new account goes to crop setup first.
-    navigate("/setup-crops");
+    if (!email.trim() || !password) {
+      setError("Enter an email address and a password.");
+      return;
+    }
+
+    createAccount(() => signUpWithEmail({ email, password, name: fullName }), "email");
+  }
+
+  function handleGoogleSignUp() {
+    createAccount(() => signInWithGoogle(), "google");
   }
 
   return (
@@ -52,16 +67,15 @@ export default function FarmerSignupPage() {
           location={location}
           navigate={navigate}
           password={password}
-          phone={phone}
           setEmail={setEmail}
           setFullName={setFullName}
           setLocation={setLocation}
           setPassword={setPassword}
-          setPhone={setPhone}
           setShowPassword={setShowPassword}
           showPassword={showPassword}
-          signupMode={signupMode}
-          setSignupMode={setSignupMode}
+          busy={busy}
+          error={error}
+          onGoogleSignUp={handleGoogleSignUp}
         />
         <MobileSignup
           email={email}
@@ -70,16 +84,15 @@ export default function FarmerSignupPage() {
           location={location}
           navigate={navigate}
           password={password}
-          phone={phone}
           setEmail={setEmail}
           setFullName={setFullName}
           setLocation={setLocation}
           setPassword={setPassword}
-          setPhone={setPhone}
           setShowPassword={setShowPassword}
           showPassword={showPassword}
-          signupMode={signupMode}
-          setSignupMode={setSignupMode}
+          busy={busy}
+          error={error}
+          onGoogleSignUp={handleGoogleSignUp}
         />
       </div>
     </div>
@@ -93,16 +106,15 @@ function DesktopSignup({
   location,
   navigate,
   password,
-  phone,
   setEmail,
   setFullName,
   setLocation,
   setPassword,
-  setPhone,
   setShowPassword,
   showPassword,
-  signupMode,
-  setSignupMode,
+  busy,
+  error,
+  onGoogleSignUp,
 }) {
   return (
     <div className="hidden w-full lg:flex">
@@ -167,8 +179,6 @@ function DesktopSignup({
               </p>
             </div>
 
-            <SignupModeToggle signupMode={signupMode} setSignupMode={setSignupMode} />
-
             <form className="mt-7 space-y-5" onSubmit={handleSubmit}>
               <InputField
                 label="Full name"
@@ -179,25 +189,14 @@ function DesktopSignup({
                 onChange={setFullName}
               />
 
-              {signupMode === "phone" ? (
-                <InputField
-                  label="Phone number"
-                  placeholder="+254 7XX XXX XXX"
-                  icon={Phone}
-                  type="tel"
-                  value={phone}
-                  onChange={setPhone}
-                />
-              ) : (
-                <InputField
-                  label="Email address"
-                  placeholder="you@example.com"
-                  icon={Mail}
-                  type="email"
-                  value={email}
-                  onChange={setEmail}
-                />
-              )}
+              <InputField
+                label="Email address"
+                placeholder="you@example.com"
+                icon={Mail}
+                type="email"
+                value={email}
+                onChange={setEmail}
+              />
 
               <InputField
                 label="County / Location"
@@ -228,18 +227,27 @@ function DesktopSignup({
 
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white transition hover:bg-[#14582D]"
+                disabled={Boolean(busy)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white transition hover:bg-[#14582D] disabled:opacity-60"
               >
-                Create Account
-                <ArrowRight className="h-4 w-4" />
+                {busy === "email" ? "Creating account..." : "Create Account"}
+                {busy === "email" ? null : <ArrowRight className="h-4 w-4" />}
               </button>
 
               <button
                 type="button"
-                className="w-full rounded-2xl border border-[#D8DED5] bg-white px-5 py-4 text-[15px] font-semibold text-[#223022] transition hover:bg-[#F8FAF7]"
+                onClick={onGoogleSignUp}
+                disabled={Boolean(busy)}
+                className="w-full rounded-2xl border border-[#D8DED5] bg-white px-5 py-4 text-[15px] font-semibold text-[#223022] transition hover:bg-[#F8FAF7] disabled:opacity-60"
               >
-                Sign up with Google
+                {busy === "google" ? "Signing in..." : "Sign up with Google"}
               </button>
+
+              {error ? (
+                <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
+                  {error}
+                </p>
+              ) : null}
             </form>
 
             <div className="mt-8 rounded-2xl bg-[#F5F8F3] px-4 py-4">
@@ -279,16 +287,15 @@ function MobileSignup({
   location,
   navigate,
   password,
-  phone,
   setEmail,
   setFullName,
   setLocation,
   setPassword,
-  setPhone,
   setShowPassword,
   showPassword,
-  signupMode,
-  setSignupMode,
+  busy,
+  error,
+  onGoogleSignUp,
 }) {
   return (
     <div className="flex min-h-screen w-full flex-col lg:hidden">
@@ -314,12 +321,6 @@ function MobileSignup({
 
       <div className="-mt-4 flex-1 px-4 pb-8">
         <div className="rounded-[28px] border border-[#E7ECE5] bg-white p-5 shadow-[0_8px_30px_rgba(25,40,20,0.05)]">
-          <SignupModeToggle
-            signupMode={signupMode}
-            setSignupMode={setSignupMode}
-            compact
-          />
-
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <InputField
               label="Full name"
@@ -331,27 +332,15 @@ function MobileSignup({
               onChange={setFullName}
             />
 
-            {signupMode === "phone" ? (
-              <InputField
-                label="Phone number"
-                placeholder="+254 7XX XXX XXX"
-                icon={Phone}
-                type="tel"
-                mobile
-                value={phone}
-                onChange={setPhone}
-              />
-            ) : (
-              <InputField
-                label="Email address"
-                placeholder="you@example.com"
-                icon={Mail}
-                type="email"
-                mobile
-                value={email}
-                onChange={setEmail}
-              />
-            )}
+            <InputField
+              label="Email address"
+              placeholder="you@example.com"
+              icon={Mail}
+              type="email"
+              mobile
+              value={email}
+              onChange={setEmail}
+            />
 
             <InputField
               label="County / Location"
@@ -384,18 +373,27 @@ function MobileSignup({
 
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white"
+              disabled={Boolean(busy)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white disabled:opacity-60"
             >
-              Create Account
-              <ArrowRight className="h-4 w-4" />
+              {busy === "email" ? "Creating account..." : "Create Account"}
+              {busy === "email" ? null : <ArrowRight className="h-4 w-4" />}
             </button>
 
             <button
               type="button"
-              className="w-full rounded-2xl border border-[#D8DED5] bg-white px-5 py-4 text-[15px] font-semibold text-[#223022]"
+              onClick={onGoogleSignUp}
+              disabled={Boolean(busy)}
+              className="w-full rounded-2xl border border-[#D8DED5] bg-white px-5 py-4 text-[15px] font-semibold text-[#223022] disabled:opacity-60"
             >
-              Sign up with Google
+              {busy === "google" ? "Signing in..." : "Sign up with Google"}
             </button>
+
+            {error ? (
+              <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
+                {error}
+              </p>
+            ) : null}
           </form>
 
           <div className="mt-6 rounded-2xl bg-[#F5F8F3] px-4 py-4">
@@ -418,37 +416,6 @@ function MobileSignup({
             </button>
           </p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function SignupModeToggle({ signupMode, setSignupMode, compact = false }) {
-  return (
-    <div className="rounded-2xl bg-[#F4F7F2] p-1">
-      <div className="grid grid-cols-2 gap-1">
-        <button
-          type="button"
-          onClick={() => setSignupMode("phone")}
-          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            signupMode === "phone"
-              ? "bg-white text-[#1E2720] shadow-sm"
-              : "text-[#667164]"
-          } ${compact ? "py-2.5" : ""}`}
-        >
-          Phone Sign Up
-        </button>
-        <button
-          type="button"
-          onClick={() => setSignupMode("email")}
-          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            signupMode === "email"
-              ? "bg-white text-[#1E2720] shadow-sm"
-              : "text-[#667164]"
-          } ${compact ? "py-2.5" : ""}`}
-        >
-          Email Sign Up
-        </button>
       </div>
     </div>
   );

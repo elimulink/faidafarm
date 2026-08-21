@@ -23,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { clearStoredUser } from "../../auth/session";
+import { endSession } from "../../auth/startSession";
 import { FINANCING_ENABLED } from "../../config/features";
 import { mobileNavItems, sidebarItems } from "./farmerNav";
 import { loadReadAlerts } from "../../data/alertsData";
@@ -90,7 +90,7 @@ function WorkspaceActions({ mobile = false, drawer = false }) {
       <button
         type="button"
         onClick={() => {
-          clearStoredUser();
+          endSession();
           navigate("/login");
         }}
         className={cn(
@@ -162,7 +162,7 @@ function DesktopProfileMenu({ workspace = "Farmer" }) {
             <button
               type="button"
               onClick={() => {
-                clearStoredUser();
+                endSession();
                 setIsOpen(false);
                 navigate("/login");
               }}

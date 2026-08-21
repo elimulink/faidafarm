@@ -1,57 +1,65 @@
 import React, { useState } from "react";
-import { ArrowRight, Mail, Phone, ShieldCheck } from "lucide-react";
+import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { describeAuthError, sendPasswordReset } from "../../auth/firebaseAuth";
 
 export default function FarmerForgotPasswordPage() {
-  const [mode, setMode] = useState("phone");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
-    // Placeholder recovery flow until backend auth is connected.
-    navigate("/verify-otp");
+    if (!email.trim()) {
+      setError("Enter the email address on the account.");
+      return;
+    }
+
+    setError("");
+    setBusy(true);
+
+    try {
+      await sendPasswordReset(email);
+      // Firebase will not say whether the address has an account, and neither
+      // do we - saying so would tell a stranger which emails are registered.
+      setSent(true);
+    } catch (resetError) {
+      setError(describeAuthError(resetError, "Could not send the reset email. Please try again."));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="min-h-screen bg-[#F6F8F4]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
         <DesktopForgot
-          mode={mode}
-          setMode={setMode}
-          phone={phone}
-          setPhone={setPhone}
           email={email}
           setEmail={setEmail}
           handleSubmit={handleSubmit}
           navigate={navigate}
+          busy={busy}
+          sent={sent}
+          error={error}
         />
         <MobileForgot
-          mode={mode}
-          setMode={setMode}
-          phone={phone}
-          setPhone={setPhone}
           email={email}
           setEmail={setEmail}
           handleSubmit={handleSubmit}
+          navigate={navigate}
+          busy={busy}
+          sent={sent}
+          error={error}
         />
       </div>
     </div>
   );
 }
 
-function DesktopForgot({
-  mode,
-  setMode,
-  phone,
-  setPhone,
-  email,
-  setEmail,
-  handleSubmit,
-  navigate,
-}) {
+function DesktopForgot({ email, setEmail, handleSubmit, navigate, busy, sent, error }) {
   return (
     <div className="hidden w-full lg:flex">
       <div className="flex w-[46%] flex-col justify-between border-r border-[#E7ECE5] bg-[#145A32] px-10 py-10 text-white xl:px-14">
@@ -103,44 +111,45 @@ function DesktopForgot({
             Choose how you want to receive your verification code.
           </p>
 
-          <RecoveryModeToggle mode={mode} setMode={setMode} />
-
           <form className="mt-7 space-y-5" onSubmit={handleSubmit}>
-            {mode === "phone" ? (
-              <InputField
-                label="Phone number"
-                placeholder="+254 7XX XXX XXX"
-                icon={Phone}
-                type="tel"
-                value={phone}
-                onChange={setPhone}
-              />
-            ) : (
-              <InputField
-                label="Email address"
-                placeholder="you@example.com"
-                icon={Mail}
-                type="email"
-                value={email}
-                onChange={setEmail}
-              />
-            )}
+            <InputField
+              label="Email address"
+              placeholder="you@example.com"
+              icon={Mail}
+              type="email"
+              value={email}
+              onChange={setEmail}
+            />
 
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white hover:bg-[#14582D]"
+              disabled={busy}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white hover:bg-[#14582D] disabled:opacity-60"
             >
-              Send OTP Code
-              <ArrowRight className="h-4 w-4" />
+              {busy ? "Sending..." : "Send reset link"}
+              {busy ? null : <ArrowRight className="h-4 w-4" />}
             </button>
+
+            {sent ? (
+              <p className="rounded-2xl bg-[#EDF7EE] px-4 py-3 text-sm leading-6 text-[#1E6B37]">
+                If that email has an account, a reset link is on its way. Open it
+                on this device to choose a new password.
+              </p>
+            ) : null}
+
+            {error ? (
+              <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
+                {error}
+              </p>
+            ) : null}
           </form>
 
           <div className="mt-8 rounded-2xl bg-[#F5F8F3] px-4 py-4">
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 text-[#2F8F46]" />
               <p className="text-sm leading-6 text-[#667164]">
-                A one-time verification code will be sent to confirm your identity
-                before password reset.
+                The reset link goes to your email and expires shortly after it is
+                sent, so nobody else can use it.
               </p>
             </div>
           </div>
@@ -157,7 +166,7 @@ function DesktopForgot({
   );
 }
 
-function MobileForgot({ mode, setMode, phone, setPhone, email, setEmail, handleSubmit }) {
+function MobileForgot({ email, setEmail, handleSubmit, navigate, busy, sent, error }) {
   return (
     <div className="flex min-h-screen w-full flex-col lg:hidden">
       <div className="rounded-b-[32px] bg-[#145A32] px-5 pb-8 pt-8 text-white">
@@ -182,76 +191,59 @@ function MobileForgot({ mode, setMode, phone, setPhone, email, setEmail, handleS
 
       <div className="-mt-4 flex-1 px-4 pb-8">
         <div className="rounded-[28px] border border-[#E7ECE5] bg-white p-5 shadow-[0_8px_30px_rgba(25,40,20,0.05)]">
-          <RecoveryModeToggle mode={mode} setMode={setMode} compact />
-
-          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-            {mode === "phone" ? (
-              <InputField
-                label="Phone number"
-                placeholder="+254 7XX XXX XXX"
-                icon={Phone}
-                type="tel"
-                mobile
-                value={phone}
-                onChange={setPhone}
-              />
-            ) : (
-              <InputField
-                label="Email address"
-                placeholder="you@example.com"
-                icon={Mail}
-                type="email"
-                mobile
-                value={email}
-                onChange={setEmail}
-              />
-            )}
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <InputField
+              label="Email address"
+              placeholder="you@example.com"
+              icon={Mail}
+              type="email"
+              mobile
+              value={email}
+              onChange={setEmail}
+            />
 
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white"
+              disabled={busy}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#166534] px-5 py-4 text-[15px] font-semibold text-white disabled:opacity-60"
             >
-              Send OTP Code
-              <ArrowRight className="h-4 w-4" />
+              {busy ? "Sending..." : "Send reset link"}
+              {busy ? null : <ArrowRight className="h-4 w-4" />}
             </button>
+
+            {sent ? (
+              <p className="rounded-2xl bg-[#EDF7EE] px-4 py-3 text-sm leading-6 text-[#1E6B37]">
+                If that email has an account, a reset link is on its way.
+              </p>
+            ) : null}
+
+            {error ? (
+              <p className="rounded-2xl bg-[#FBEEE9] px-4 py-3 text-sm leading-6 text-[#8C3A22]">
+                {error}
+              </p>
+            ) : null}
           </form>
 
           <div className="mt-6 rounded-2xl bg-[#F5F8F3] px-4 py-4">
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 text-[#2F8F46]" />
               <p className="text-sm leading-6 text-[#667164]">
-                We will send a secure verification code before resetting your password.
+                The reset link goes to your email and expires shortly after it is sent.
               </p>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function RecoveryModeToggle({ mode, setMode, compact = false }) {
-  return (
-    <div className="mt-7 rounded-2xl bg-[#F4F7F2] p-1">
-      <div className="grid grid-cols-2 gap-1">
-        <button
-          type="button"
-          onClick={() => setMode("phone")}
-          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            mode === "phone" ? "bg-white text-[#1E2720] shadow-sm" : "text-[#667164]"
-          } ${compact ? "py-2.5" : ""}`}
-        >
-          Phone
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("email")}
-          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            mode === "email" ? "bg-white text-[#1E2720] shadow-sm" : "text-[#667164]"
-          } ${compact ? "py-2.5" : ""}`}
-        >
-          Email
-        </button>
+          <p className="mt-6 text-center text-sm text-[#667164]">
+            Remembered your password?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="font-semibold text-[#1E6B37]"
+            >
+              Back to login
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { clearStoredUser } from "../../auth/session";
+import { endSession } from "../../auth/startSession";
 import { canAccessAdminAnalytics, canAccessFieldRoute, canAccessResearchRoute } from "../../auth/access";
 
 const researchNavItems = [
@@ -230,7 +230,7 @@ export default function ResearchSidebar({ user }) {
               <button
                 type="button"
                 onClick={() => {
-                  clearStoredUser();
+                  endSession();
                   navigateFromPopover("/login");
                 }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-red-700 hover:bg-red-50"
