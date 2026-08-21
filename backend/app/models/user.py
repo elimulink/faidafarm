@@ -22,7 +22,16 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(String(32), unique=True, index=True)
     full_name: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, name="user_role"),
+        Enum(
+            UserRole,
+            name="user_role",
+            # The database type holds the lowercase values - "farmer" - but
+            # SQLAlchemy persists an Enum by its NAME, "FARMER", unless told
+            # otherwise. Postgres rejects that outright, so every attempt to
+            # create a user died on:
+            #   invalid input value for enum user_role: "FARMER"
+            values_callable=lambda enum: [member.value for member in enum],
+        ),
         default=UserRole.FARMER,
         nullable=False,
     )
