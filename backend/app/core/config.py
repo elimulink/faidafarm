@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # trouble than an environment variable. Without it tokens are still
     # verified, just against Google's public certificates.
     FIREBASE_SERVICE_ACCOUNT_JSON: str | None = None
+    # The same key split into the two fields that matter, for hosts where
+    # setting an environment variable beats uploading a file. Required for
+    # anything that acts on Firebase's behalf, such as sending through FCM.
+    FIREBASE_CLIENT_EMAIL: str | None = None
+    FIREBASE_PRIVATE_KEY: str | None = None
     FRONTEND_URL: str = "http://localhost:5173"
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"

@@ -25,8 +25,12 @@ export default function FarmerSignupPage() {
   const navigate = useNavigate();
 
   // Firebase creates the account and keeps the password; the backend turns the
-  // resulting token into a FaidaFarm user. Crops are required, so a new account
-  // goes to crop setup rather than straight to the dashboard.
+  // resulting token into a FaidaFarm user.
+  //
+  // This heads for the dashboard rather than crop setup even though the account
+  // is new: the farmer route guard already sends anyone without crops to setup,
+  // and going there directly would strand a returning Google user - who has
+  // crops already - on a setup page they finished long ago.
   async function createAccount(runSignUp, source) {
     setError("");
     setBusy(source);
@@ -34,7 +38,7 @@ export default function FarmerSignupPage() {
     try {
       const { idToken, profile } = await runSignUp();
       await startSession({ idToken, profile, loginMode: source, county: location });
-      navigate("/setup-crops", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (signUpError) {
       setError(describeAuthError(signUpError, "Could not create the account. Please try again."));
     } finally {

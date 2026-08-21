@@ -21,6 +21,7 @@ import AccessRestricted from "./components/AccessRestricted";
 import AssistantDock from "./assistant/AssistantDock";
 import { getFarmerPageMeta } from "./components/farmer/farmerNav";
 import { loadFarmCrops } from "./farm/cropStorage";
+import { usePushRegistration } from "./lib/usePushRegistration";
 import { getStoredUser } from "./auth/session";
 import {
   canAccessAdminAnalytics,
@@ -96,6 +97,10 @@ function RootRedirect() {
 }
 
 export default function App() {
+  // Mounted once, inside the router: a tapped notification needs somewhere to
+  // navigate to.
+  usePushRegistration();
+
   return (
     <Routes>
       <Route path="/login" element={<FarmerLoginPage />} />

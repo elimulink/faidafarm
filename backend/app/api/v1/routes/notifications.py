@@ -12,6 +12,8 @@ from app.models.operations import SystemNotification
 from app.models.role import UserRole
 from app.models.user import User
 from app.schemas.operations import SystemNotificationCreate, SystemNotificationRead
+from app.schemas.push import DeviceTokenRegister, PushAck
+from app.services import push_service
 
 router = APIRouter()
 
@@ -41,6 +43,16 @@ def create_notification(
     db.add(notification)
     db.commit()
     db.refresh(notification)
+
+    # Saved first, delivered second: the alerts list is the record and the tray
+    # is a courtesy, so a push that fails must never lose the notification.
+    if notification.user_id is None:
+        push_service.send_broadcast(db, notification.title, notification.message, notification.category)
+    else:
+        push_service.send_to_user(
+            db, notification.user_id, notification.title, notification.message, notification.category
+        )
+
     return notification
 
 
@@ -57,3 +69,29 @@ def mark_notification_read(
     db.commit()
     db.refresh(notification)
     return notification
+
+
+@router.post("/devices", response_model=PushAck, status_code=status.HTTP_201_CREATED)
+def register_device(
+    payload: DeviceTokenRegister,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PushAck:
+    """Point this phone's FCM token at the signed-in account.
+
+    Safe to call on every sign-in: the same token simply moves to whoever is
+    signed in now, which is what should happen on a shared phone.
+    """
+    push_service.register_device(db, current_user, payload.token, payload.platform)
+    return PushAck(ok=True)
+
+
+@router.delete("/devices/{token}", response_model=PushAck)
+def unregister_device(
+    token: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> PushAck:
+    """Stop pushing to this phone, so signing out actually stops the buzzing."""
+    push_service.unregister_device(db, current_user, token)
+    return PushAck(ok=True)

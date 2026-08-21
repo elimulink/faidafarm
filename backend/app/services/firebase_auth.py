@@ -52,6 +52,25 @@ def _service_account_credential() -> credentials.Certificate | None:
         except (ValueError, TypeError) as exc:
             logger.warning("FIREBASE_SERVICE_ACCOUNT_JSON is not usable service account JSON: %s", exc)
 
+    # The three fields that actually matter, as separate variables. Hosts make
+    # environment variables far easier to set than secret files, and this is
+    # the only shape a dashboard can hold without mangling the key.
+    if settings.FIREBASE_CLIENT_EMAIL and settings.FIREBASE_PRIVATE_KEY and settings.FIREBASE_PROJECT_ID:
+        try:
+            return credentials.Certificate(
+                {
+                    "type": "service_account",
+                    "project_id": settings.FIREBASE_PROJECT_ID,
+                    "client_email": settings.FIREBASE_CLIENT_EMAIL,
+                    # Dashboards and .env files store the key with literal \n
+                    # sequences, which the PEM parser rejects outright.
+                    "private_key": settings.FIREBASE_PRIVATE_KEY.replace("\\n", "\n"),
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                }
+            )
+        except (ValueError, TypeError) as exc:
+            logger.warning("FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY are not a usable service account: %s", exc)
+
     path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     if not path:
         return None
@@ -77,6 +96,15 @@ class FirebaseAuthService:
     def initialize() -> None:
         """Prepare whichever verification route this deploy can use."""
         FirebaseAuthService._has_admin()
+
+    @staticmethod
+    def has_service_account() -> bool:
+        """True when a real service account is loaded.
+
+        Verifying a token can manage without one; anything that acts on
+        Firebase's behalf - sending through FCM, reading a user record - cannot.
+        """
+        return FirebaseAuthService._has_admin()
 
     @staticmethod
     def _has_admin() -> bool:

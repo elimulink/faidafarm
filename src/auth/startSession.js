@@ -3,7 +3,8 @@
 // Login and signup both end here, so the rule about who a user is lives in one
 // place: the backend decides, and the client only carries the token.
 
-import { ApiError, isApiConfigured, verifySession } from "../lib/apiClient";
+import { ApiError, api, isApiConfigured, verifySession } from "../lib/apiClient";
+import { currentPushToken, disablePush, enablePush } from "../lib/push";
 import { signOutOfFirebase } from "./firebaseAuth";
 import { clearStoredUser, setStoredUser } from "./session";
 
@@ -46,6 +47,21 @@ export async function startSession({ idToken, profile, loginMode, county = "" })
   };
 
   setStoredUser(user);
+
+  // Subscribe this phone to its owner's notifications. Deliberately not
+  // awaited: the permission prompt is Android's to run in its own time, and a
+  // farmer who declines it - or a phone with no Play Services - must still get
+  // all the way in. The alerts list carries everything regardless.
+  if (isApiConfigured()) {
+    enablePush({
+      onToken: (token) => {
+        api.post("/notifications/devices", { token, platform: "android" }).catch((error) => {
+          console.warn("[push] the backend did not accept this device token", error);
+        });
+      },
+    });
+  }
+
   return user;
 }
 
@@ -58,7 +74,25 @@ export async function startSession({ idToken, profile, loginMode, county = "" })
  * logging out.
  */
 export async function endSession() {
+  const pushToken = currentPushToken();
+
+  // Cleared first and synchronously, because callers navigate away the moment
+  // this is called and the route guard reads storage on the way out.
   clearStoredUser();
+
+  // Unregister before signing out of Firebase, not after: the call is
+  // authenticated, and once Firebase has signed out there is no token to send.
+  // Otherwise the next person to use this phone would keep getting alerts
+  // meant for the last one.
+  if (pushToken && isApiConfigured()) {
+    try {
+      await api.delete(`/notifications/devices/${encodeURIComponent(pushToken)}`);
+    } catch (error) {
+      console.warn("[push] this device could not be unregistered", error);
+    }
+  }
+
+  await disablePush();
 
   try {
     await signOutOfFirebase();

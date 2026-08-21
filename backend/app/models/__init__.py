@@ -1,4 +1,5 @@
 from app.core.database import Base
+from app.models.device_token import DeviceToken
 from app.models.farmer import Buyer, Crop, Farm, FarmerAlert, MarketPrice, WeatherSnapshot
 from app.models.field import (
     DeviceRegistration,
@@ -46,6 +47,7 @@ __all__ = [
     "Crop",
     "DataQualityFlag",
     "DeviceRegistration",
+    "DeviceToken",
     "EnumeratorActivity",
     "ExportJob",
     "FMNRPlot",
