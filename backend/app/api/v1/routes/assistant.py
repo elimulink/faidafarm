@@ -29,9 +29,26 @@ router = APIRouter()
 optional_bearer = HTTPBearer(auto_error=False)
 
 
+class AssistantImage(BaseModel):
+    """One inline photo. Only images are accepted - a farmer sending a PDF is
+    not a case worth carrying, and every accepted type is one more thing to
+    validate."""
+
+    mimeType: str = "image/jpeg"
+    data: str = ""
+
+    @field_validator("mimeType")
+    @classmethod
+    def _must_be_an_image(cls, value: str) -> str:
+        if not value.startswith("image/"):
+            raise ValueError("Only images can be attached.")
+        return value
+
+
 class AssistantMessage(BaseModel):
     role: str = "user"
     text: str = ""
+    images: list[AssistantImage] = Field(default_factory=list)
 
     # A stored message can carry text: null - an attachment-only turn, or one
     # restored from an older chat. Rejecting the whole request over it meant the

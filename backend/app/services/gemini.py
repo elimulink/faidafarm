@@ -25,6 +25,12 @@ Answer in plain, practical language a farmer can act on today. Prefer short
 paragraphs and short lists. Use metric units, Kenyan Shillings (KES), and local
 season names (long rains, short rains) where they apply.
 
+Farmers will send photos of leaves, stems, soil, pests and stored grain. You
+can see them. Look at what is actually in the picture and say what you observe
+before you interpret it, so the farmer can tell whether you are looking at the
+same thing they are. If the photo is too blurred or too dark to judge, say so
+and ask for a closer one in daylight rather than guessing at a diagnosis.
+
 If a question needs information you do not have - the farmer's county, crop, or
 plot size - ask one short clarifying question instead of guessing.
 
@@ -66,21 +72,54 @@ def _payload(contents: list[dict[str, Any]], context: dict[str, Any] | None) -> 
     }
 
 
+# A photo of a leaf is often a better question than any description of it, so
+# the cap is generous enough for several shots of one plant.
+MAX_IMAGES_PER_TURN = 4
+
+
 def _to_contents(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Maps the client's {role, text} history onto Gemini's contents array.
+    """Maps the client's {role, text, images} history onto Gemini's contents.
 
     The dock uses "assistant"; Gemini calls the same thing "model". Empty turns
     are dropped - the client appends a blank assistant message as a placeholder
     before streaming into it, and sending that would end the history on an empty
-    model turn.
+    model turn. A turn carrying only a photo is NOT empty: "what is wrong with
+    this?" is the whole question a farmer means by sending it.
     """
     contents: list[dict[str, Any]] = []
+
     for message in messages:
         text = str(message.get("text") or message.get("content") or "").strip()
-        if not text:
+        images = (message.get("images") or [])[:MAX_IMAGES_PER_TURN]
+
+        if not text and not images:
             continue
+
+        parts: list[dict[str, Any]] = []
+        if text:
+            parts.append({"text": text})
+
+        for image in images:
+            data = str(image.get("data") or "")
+            if not data:
+                continue
+            parts.append(
+                {
+                    "inlineData": {
+                        "mimeType": str(image.get("mimeType") or "image/jpeg"),
+                        "data": data,
+                    }
+                }
+            )
+
+        # A photo with no words needs a question attached, or the model tends to
+        # narrate the picture rather than diagnose it.
+        if images and not text:
+            parts.insert(0, {"text": "What do you see in this photo of my crop, and what should I do?"})
+
         role = "model" if message.get("role") in {"assistant", "model"} else "user"
-        contents.append({"role": role, "parts": [{"text": text}]})
+        contents.append({"role": role, "parts": parts})
+
     return contents
 
 

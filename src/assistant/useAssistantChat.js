@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { describeAssistantError, streamAssistantReply } from "./assistantClient";
+import { toImageParts } from "./imageParts";
 import {
   createChat,
   deriveChatTitle,
@@ -132,6 +133,12 @@ export default function useAssistantChat({ context = null } = {}) {
         return;
       }
 
+      // Encoded before the history is built, because the request goes out on
+      // the same tick. Only this turn carries pixels: re-uploading every past
+      // photo on every follow-up would cost a farmer their bundle for nothing,
+      // so older turns keep a text marker instead.
+      const images = await toImageParts(attachments);
+
       const existing = chats.find((item) => item.id === activeChatId);
       const chatId = existing ? existing.id : createChat(chats).id;
 
@@ -149,15 +156,21 @@ export default function useAssistantChat({ context = null } = {}) {
       // empty history is a 422 the dock reported as "Could not reach the
       // assistant". React sometimes computes an updater eagerly, which is why it
       // answered often enough to look like a network problem.
-      const history = [...(existing?.messages || []), userMessage].map((message) => ({
-        role: message.role,
-        text: message.text,
-        attachments: (message.attachments || []).map((item) => ({
-          name: item.name,
-          type: item.type,
-          isImage: item.isImage,
-        })),
-      }));
+      const previous = existing?.messages || [];
+      const history = [...previous, userMessage].map((message, index) => {
+        const photos = (message.attachments || []).filter((item) => item.isImage).length;
+        const isCurrentTurn = index === previous.length;
+
+        return {
+          role: message.role,
+          // An older turn's photo is gone from the payload, so say it was there:
+          // "it looks worse now" only parses if the model knows what "it" was.
+          text: !isCurrentTurn && photos
+            ? `${message.text || ""} [${photos} photo${photos === 1 ? "" : "s"} attached earlier]`.trim()
+            : message.text,
+          images: isCurrentTurn ? images : [],
+        };
+      });
 
       setChats((current) => {
         let working = current;
