@@ -9,6 +9,10 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = Field(..., description="PostgreSQL connection string")
     FIREBASE_PROJECT_ID: str | None = None
+    # The service account JSON itself, for hosts where a secret file is more
+    # trouble than an environment variable. Without it tokens are still
+    # verified, just against Google's public certificates.
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = None
     FRONTEND_URL: str = "http://localhost:5173"
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
