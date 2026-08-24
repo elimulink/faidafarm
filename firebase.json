@@ -1,6 +1,8 @@
 {
   "hosting": {
     "public": "dist",
+    "//": "Serves /privacy-policy from privacy-policy.html. Without it the catch-all rewrite below swallows both static pages and returns the app instead, which is worse than a 404 because it still answers 200.",
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",

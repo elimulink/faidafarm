@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FaidaFarm privacy policy</title>
+    <meta
+      name="description"
+      content="What FaidaFarm collects, why, who it is shared with, and how to have it deleted."
+    />
+    <link rel="icon" href="/favicon.svg" />
+    <style>
+      :root {
+        --green: #166534;
+        --ink: #1e2720;
+        --muted: #667164;
+        --line: #e7ece5;
+        --bg: #f6f8f4;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      header { background: #145a32; color: #fff; padding: 28px 20px; }
+      .wrap { max-width: 760px; margin: 0 auto; }
+      header .brand { display: flex; align-items: center; gap: 12px; }
+      header img { width: 44px; height: 44px; object-fit: contain; }
+      header h1 { margin: 18px 0 6px; font-size: 28px; line-height: 1.2; }
+      header p { margin: 0; color: rgba(255, 255, 255, 0.85); }
+      main { padding: 28px 20px 56px; }
+      section {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px 22px;
+        margin-bottom: 18px;
+      }
+      h2 { font-size: 19px; margin: 0 0 10px; }
+      p { margin: 0 0 12px; }
+      p:last-child { margin-bottom: 0; }
+      ul { margin: 0 0 12px; padding-left: 20px; }
+      li { margin-bottom: 8px; }
+      a { color: var(--green); }
+      table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+      th, td {
+        text-align: left;
+        padding: 9px 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+      .note {
+        background: #f7fbf5;
+        border: 1px solid #dcead5;
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      footer { color: var(--muted); font-size: 14px; padding: 0 20px 40px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="brand">
+          <img src="/logo.png" alt="" />
+          <strong>FaidaFarm</strong>
+        </div>
+        <h1>Privacy policy</h1>
+        <p>Last updated 25 August 2026</p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section>
+        <h2>The short version</h2>
+        <p>
+          FaidaFarm helps smallholder farmers in Kenya keep farm records and see
+          market prices, weather and buyers. To do that it needs to know who you
+          are and what you grow. It does not sell your data, does not show
+          advertising, and does not track you across other apps or websites.
+        </p>
+      </section>
+
+      <section>
+        <h2>What we collect</h2>
+        <table>
+          <thead>
+            <tr><th>Data</th><th>Why</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Email address, and your name and profile picture if you sign in with Google</td>
+              <td>To create your account and let you sign back in</td>
+            </tr>
+            <tr>
+              <td>Phone number and county, if you enter them</td>
+              <td>To match you to nearby markets and buyers</td>
+            </tr>
+            <tr>
+              <td>Your crops, farm records and harvest dates</td>
+              <td>To match prices, weather advice and alerts to what you actually grow</td>
+            </tr>
+            <tr>
+              <td>Questions and photographs you send to the farming assistant</td>
+              <td>To answer them. See the section on the assistant below.</td>
+            </tr>
+            <tr>
+              <td>A notification registration for your phone</td>
+              <td>To send price, weather and harvest alerts. Removed when you sign out.</td>
+            </tr>
+            <tr>
+              <td>Your farm's approximate coordinates, if recorded</td>
+              <td>To fetch the local forecast</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="margin-top: 14px">
+          <strong>Your password is never sent to us.</strong> Sign-in is handled
+          by Google Firebase Authentication, which holds the password and gives
+          our server only a short-lived token proving who you are.
+        </p>
+      </section>
+
+      <section>
+        <h2>What we do not collect</h2>
+        <ul>
+          <li>Your continuous or background location. The app never tracks where you go.</li>
+          <li>Your contacts, messages, call history or files.</li>
+          <li>Your photo library. A photograph reaches us only when you pick or take one yourself.</li>
+          <li>Payment or M-Pesa details. FaidaFarm is free and takes no payments.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>The farming assistant and your photographs</h2>
+        <p>
+          When you ask the assistant a question, the question and any photograph
+          you attach are sent to <strong>Google Gemini</strong> to produce an
+          answer.
+        </p>
+        <div class="note">
+          Photographs you send to the assistant are relayed to Google and are
+          <strong>not stored on our servers</strong>. Please avoid photographing
+          people, identity documents or anything else you would not want to
+          share &mdash; a picture of the crop is all the assistant needs.
+        </div>
+      </section>
+
+      <section>
+        <h2>Who else handles your data</h2>
+        <p>We use a small number of providers to run the service:</p>
+        <table>
+          <thead>
+            <tr><th>Provider</th><th>What they handle</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Google Firebase</td><td>Sign-in, and delivery of notifications to your phone</td></tr>
+            <tr><td>Google Gemini</td><td>Assistant questions and any attached photograph</td></tr>
+            <tr><td>Render</td><td>Runs the FaidaFarm server</td></tr>
+            <tr><td>Neon</td><td>Hosts the database holding your account and farm records</td></tr>
+            <tr><td>Open-Meteo</td><td>Weather forecasts. Receives coordinates only, never your identity.</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top: 14px">
+          These providers process data on our instructions. We do not sell your
+          data or share it with advertisers or data brokers. Our servers are
+          outside Kenya, so your data is stored and processed abroad.
+        </p>
+      </section>
+
+      <section>
+        <h2>How long we keep it</h2>
+        <p>
+          Your account and farm records are kept until you ask us to delete
+          them. Notification registrations are removed as soon as you sign out.
+        </p>
+      </section>
+
+      <section>
+        <h2>Your choices</h2>
+        <ul>
+          <li>
+            <strong>Delete your account.</strong> Follow the steps at
+            <a href="/delete-account">faidafarm-baa26.web.app/delete-account</a>.
+          </li>
+          <li>
+            <strong>Turn off notifications</strong> at any time in your phone's
+            settings, without losing anything else.
+          </li>
+          <li>
+            <strong>Ask for a copy of your data,</strong> or ask us to correct
+            it, by emailing the address below.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Children</h2>
+        <p>
+          FaidaFarm is meant for adults running a farm and is not directed at
+          children. We do not knowingly collect data from anyone under 18. If
+          you believe a child has created an account, email us and we will
+          remove it.
+        </p>
+      </section>
+
+      <section>
+        <h2>Changes, and how to reach us</h2>
+        <p>
+          If this policy changes in a way that affects you, we will say so in
+          the app before the change takes effect. Questions, requests and
+          complaints all go to the same place:
+        </p>
+        <p>
+          <a href="mailto:info@growafricafutures.org">info@growafricafutures.org</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      FaidaFarm &mdash; farm records, market prices, weather and buyers for
+      smallholder farmers in Kenya.
+    </footer>
+  </body>
+</html>

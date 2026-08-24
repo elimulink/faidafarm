@@ -19,6 +19,24 @@ import { startSession } from "../../auth/startSession";
 import { RESEARCH_WORKSPACE_ENABLED } from "../../config/features";
 import LoadingScreen from "../../components/LoadingScreen";
 
+// Play requires the policy to be reachable from the app, not only the store
+// listing. Opened outside the WebView so a farmer mid-sign-in does not lose
+// what they typed.
+function PrivacyLink({ className = "" }) {
+  return (
+    <p className={`text-center text-xs leading-5 text-[#8A9488] ${className}`}>
+      <a
+        href="https://faidafarm-baa26.web.app/privacy-policy"
+        target="_blank"
+        rel="noreferrer"
+        className="underline decoration-[#C9D2C6] underline-offset-2 hover:text-[#1E6B37]"
+      >
+        Privacy policy
+      </a>
+    </p>
+  );
+}
+
 function GoogleMark() {
   return (
     <svg className="h-[18px] w-[18px]" viewBox="0 0 48 48" aria-hidden="true">
@@ -416,6 +434,8 @@ function DesktopLogin({
                 Create account
               </button>
             </p>
+
+            <PrivacyLink className="mt-4" />
           </div>
         </div>
       </div>
@@ -542,6 +562,8 @@ function MobileLogin({
               Create account
             </button>
           </p>
+
+          <PrivacyLink className="mt-4" />
         </div>
       </div>
     </div>

@@ -40,3 +40,7 @@ venv/
 .env
 .env.local
 .env.*.local
+
+# Generated env dumps for pasting into a host dashboard. Never commit.
+.env.render
+backend/.env.render

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Delete your FaidaFarm account</title>
+    <meta
+      name="description"
+      content="How to ask for your FaidaFarm account and data to be deleted, what is removed, and how long it takes."
+    />
+    <link rel="icon" href="/favicon.svg" />
+    <style>
+      :root {
+        --green: #166534;
+        --ink: #1e2720;
+        --muted: #667164;
+        --line: #e7ece5;
+        --bg: #f6f8f4;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      header {
+        background: #145a32;
+        color: #fff;
+        padding: 28px 20px;
+      }
+      .wrap { max-width: 720px; margin: 0 auto; }
+      header .brand { display: flex; align-items: center; gap: 12px; }
+      header img { width: 44px; height: 44px; object-fit: contain; }
+      header h1 { margin: 18px 0 6px; font-size: 28px; line-height: 1.2; }
+      header p { margin: 0; color: rgba(255, 255, 255, 0.85); }
+      main { padding: 28px 20px 56px; }
+      section {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px 22px;
+        margin-bottom: 18px;
+      }
+      h2 { font-size: 19px; margin: 0 0 10px; }
+      ol, ul { margin: 0; padding-left: 20px; }
+      li { margin-bottom: 8px; }
+      a { color: var(--green); }
+      .email {
+        display: inline-block;
+        font-weight: 700;
+        font-size: 17px;
+        background: #eef7ec;
+        border: 1px solid #dcead5;
+        border-radius: 10px;
+        padding: 8px 14px;
+        margin: 6px 0;
+      }
+      table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+      th, td {
+        text-align: left;
+        padding: 9px 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+      footer { color: var(--muted); font-size: 14px; padding: 0 20px 40px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="brand">
+          <img src="/logo.png" alt="" />
+          <strong>FaidaFarm</strong>
+        </div>
+        <h1>Delete your FaidaFarm account</h1>
+        <p>How to ask us to remove your account and the data attached to it.</p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section>
+        <h2>How to request deletion</h2>
+        <ol>
+          <li>
+            Send an email to the address below from the email address you use to
+            sign in to FaidaFarm. Sending it from that address is how we confirm
+            the request is really yours.
+          </li>
+          <li>Put <strong>Delete my account</strong> in the subject line.</li>
+          <li>
+            If you signed in with a phone number rather than an email address,
+            include that number in the message.
+          </li>
+        </ol>
+        <p>
+          <a class="email" href="mailto:info@growafricafutures.org?subject=Delete%20my%20account">info@growafricafutures.org</a>
+        </p>
+        <p style="margin-bottom: 0">
+          We confirm by email once the account is gone. If you do not hear back
+          within seven days, send the message again &mdash; it did not reach us.
+        </p>
+      </section>
+
+      <section>
+        <h2>What is deleted, and what is kept</h2>
+        <table>
+          <thead>
+            <tr><th>Data</th><th>What happens</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Your account &mdash; name, email address, phone number, county</td>
+              <td>Deleted, along with the sign-in credentials held by Firebase Authentication</td>
+            </tr>
+            <tr>
+              <td>Farm records &mdash; crops, harvests, plots</td>
+              <td>Deleted</td>
+            </tr>
+            <tr>
+              <td>Questions and photographs sent to the farming assistant</td>
+              <td>Deleted</td>
+            </tr>
+            <tr>
+              <td>Alerts, saved buyers and notification history</td>
+              <td>Deleted</td>
+            </tr>
+            <tr>
+              <td>The registration that lets your phone receive notifications</td>
+              <td>Deleted, so the phone stops receiving them</td>
+            </tr>
+            <tr>
+              <td>Market prices and weather records</td>
+              <td>
+                Kept. These describe markets and the weather rather than you,
+                are not linked to your account, and stay available to other
+                farmers.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>How long it takes</h2>
+        <p style="margin: 0">
+          Accounts are deleted within <strong>30 days</strong> of the request.
+          Copies may survive in encrypted backups for up to a further
+          <strong>90 days</strong>, after which they expire and are overwritten.
+          Nothing in a backup is used for anything except restoring the service
+          after a failure.
+        </p>
+      </section>
+
+      <section>
+        <h2>Deleting the app is not the same thing</h2>
+        <p style="margin: 0">
+          Uninstalling FaidaFarm removes it from your phone but leaves your
+          account on our servers, so you can sign in again later from any
+          device. Use the request above if you want the account itself removed.
+        </p>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      FaidaFarm &mdash; farm records, market prices, weather and buyers for
+      smallholder farmers in Kenya.
+    </footer>
+  </body>
+</html>
