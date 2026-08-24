@@ -91,6 +91,23 @@ export const api = {
   delete: (path, options) => request(path, { ...options, method: "DELETE" }),
 };
 
+/**
+ * Nudges the backend awake, without waiting for it.
+ *
+ * The free Render tier sleeps after a quiet spell and takes the better part of
+ * a minute to come back. Sign-in is the first thing that needs it, so this is
+ * fired when the app opens: by the time a farmer has typed their password the
+ * server is usually already up, and the wait disappears instead of being
+ * explained. Failure is silence - this is an optimisation, not a dependency.
+ */
+export function warmUpApi() {
+  if (!isApiConfigured()) {
+    return;
+  }
+
+  request("/health", { auth: false }).catch(() => {});
+}
+
 /** Exchanges a Firebase ID token for a FaidaFarm user record. */
 export function verifySession(idToken) {
   return request("/auth/verify", { method: "POST", body: { id_token: idToken }, auth: false });

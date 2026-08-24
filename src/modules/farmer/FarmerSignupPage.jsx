@@ -12,6 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { describeAuthError, signInWithGoogle, signUpWithEmail } from "../../auth/firebaseAuth";
 import { startSession } from "../../auth/startSession";
+import LoadingScreen from "../../components/LoadingScreen";
 
 export default function FarmerSignupPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -99,6 +100,7 @@ export default function FarmerSignupPage() {
           onGoogleSignUp={handleGoogleSignUp}
         />
       </div>
+      {busy === "email" ? <LoadingScreen message="Creating your account" /> : null}
     </div>
   );
 }

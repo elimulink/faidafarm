@@ -17,6 +17,7 @@ import { getStoredUser, setStoredUser } from "../../auth/session";
 import { describeAuthError, signInWithEmail, signInWithGoogle } from "../../auth/firebaseAuth";
 import { startSession } from "../../auth/startSession";
 import { RESEARCH_WORKSPACE_ENABLED } from "../../config/features";
+import LoadingScreen from "../../components/LoadingScreen";
 
 function GoogleMark() {
   return (
@@ -119,6 +120,9 @@ export default function FarmerLoginPage() {
         <DesktopLogin {...shared} />
         <MobileLogin {...shared} />
       </div>
+      {/* Google runs in its own window, so covering ours would hide the account
+          picker. Only the email wait gets the full screen. */}
+      {busy === "email" ? <LoadingScreen message="Signing you in" /> : null}
       {RESEARCH_WORKSPACE_ENABLED && showWorkspaceModal ? (
         <WorkspacePickerModal
           onChooseFarmer={() => handleWorkspaceSelect("farmer")}
