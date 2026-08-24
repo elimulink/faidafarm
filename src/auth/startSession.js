@@ -90,6 +90,10 @@ export async function endSession() {
     } catch (error) {
       console.warn("[push] this device could not be unregistered", error);
     }
+  } else if (isApiConfigured()) {
+    // Silence here would be indistinguishable from success while the phone
+    // stayed subscribed, which is exactly how this went unnoticed once.
+    console.warn("[push] no token to unregister; this device may still be subscribed");
   }
 
   await disablePush();

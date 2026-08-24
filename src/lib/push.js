@@ -10,6 +10,33 @@ import { Capacitor } from "@capacitor/core";
 
 const CHANNEL_ID = "faidafarm_default";
 
+// The token is remembered on disk, not just in memory.
+//
+// FCM announces a token once per launch, through a listener. Anything that
+// resets module state - an app restart, a WebView reload - loses it, and a
+// farmer who then signs out leaves this phone subscribed to their alerts with
+// no token left to unregister. Written down, sign-out can always undo
+// sign-in, however long ago the token arrived.
+const TOKEN_STORAGE_KEY = "faidafarm.push.token";
+
+function rememberToken(token) {
+  registeredToken = token;
+  try {
+    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  } catch {
+    // Private mode or a full quota. The in-memory copy still covers this run.
+  }
+}
+
+function forgetToken() {
+  registeredToken = null;
+  try {
+    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    // Nothing to do: the in-memory copy is already gone.
+  }
+}
+
 let registeredToken = null;
 let listenersBound = false;
 let pluginModule = null;
@@ -121,7 +148,7 @@ export async function enablePush({ onToken, onTap } = {}) {
       listenersBound = true;
 
       await PushNotifications.addListener("registration", (token) => {
-        registeredToken = token.value;
+        rememberToken(token.value);
         handlers.onToken?.(token.value);
       });
 
@@ -142,9 +169,20 @@ export async function enablePush({ onToken, onTap } = {}) {
   }
 }
 
-/** The token currently registered with FCM, if any. */
+/** The token currently registered with FCM, if any.
+
+    Falls back to the stored copy, because sign-out needs a token to unregister
+    even when this run never saw the listener fire. */
 export function currentPushToken() {
-  return registeredToken;
+  if (registeredToken) {
+    return registeredToken;
+  }
+
+  try {
+    return window.localStorage.getItem(TOKEN_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Drop the tray registration on sign-out, so the next person to use the
@@ -161,7 +199,7 @@ export async function disablePush() {
     console.error("[push] disable failed", error);
   } finally {
     listenersBound = false;
-    registeredToken = null;
+    forgetToken();
     handlers.onToken = null;
     handlers.onTap = null;
   }
