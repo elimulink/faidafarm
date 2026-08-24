@@ -1,5 +1,15 @@
 apply plugin: 'com.android.application'
 
+// Signing details live outside the repo, because anyone holding the keystore
+// and its password can publish an update as us. Absent, a release build is
+// still produced - just unsigned, which Play rejects with a clear message
+// rather than a mystery.
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.faidafarm.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +26,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties['FAIDAFARM_UPLOAD_STORE_FILE'])
+                storePassword keystoreProperties['FAIDAFARM_UPLOAD_STORE_PASSWORD']
+                keyAlias keystoreProperties['FAIDAFARM_UPLOAD_KEY_ALIAS']
+                keyPassword keystoreProperties['FAIDAFARM_UPLOAD_KEY_PASSWORD']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            // Left off deliberately. Capacitor bridges native calls by
+            // reflection over class and method names, so shrinking needs
+            // keep rules proven on a device before a release depends on them.
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

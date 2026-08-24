@@ -99,3 +99,9 @@ app/src/main/assets/public
 app/src/main/assets/capacitor.config.json
 app/src/main/assets/capacitor.plugins.json
 app/src/main/res/xml/config.xml
+
+# Upload signing key. Never commit: anyone with this and the password can
+# publish an update as you.
+*.jks
+*.keystore
+keystore.properties
