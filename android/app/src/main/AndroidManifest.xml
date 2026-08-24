@@ -47,15 +47,14 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- The assistant lets a farmer photograph a crop and attach saved photos.
-         READ_MEDIA_IMAGES covers Android 13+; READ_EXTERNAL_STORAGE covers
-         older releases and is capped so it is not requested on 13+. -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!-- The assistant photographs a crop and attaches saved photos through a
+         plain file input, which the WebView hands to the system photo picker
+         and the camera app. Both return a content URI this app may read on the
+         spot, so no storage or camera permission is needed - and asking for
+         READ_MEDIA_IMAGES would put the listing under Play's photo and video
+         policy for a capability the code never requests at runtime.
 
-    <!-- A device without a camera can still use every other feature. -->
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
+         CAMERA in particular is worse than unnecessary: declaring it makes
+         ACTION_IMAGE_CAPTURE demand it be granted, so declaring it can break
+         the very button it appears to enable. -->
 </manifest>
