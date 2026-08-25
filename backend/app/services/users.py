@@ -47,10 +47,13 @@ def welcome_user(db: Session, user: User) -> None:
     the very first account often has no device to push to yet. The greeting is
     waiting in Alerts regardless, and any device already registered still buzzes.
     """
-    name = (user.full_name or "").strip().split(" ")[0] or "there"
+    # "Karibu there" reads like a mail merge that failed. Without a name the
+    # greeting simply stands on its own, which is how anyone would say it.
+    name = (user.full_name or "").strip().split(" ")[0]
+    greeting = f"Karibu {name}." if name else "Karibu!"
     title = "Welcome to FaidaFarm"
     message = (
-        f"Karibu {name}. Add the crops you grow and FaidaFarm will match today's "
+        f"{greeting} Add the crops you grow and FaidaFarm will match today's "
         "prices, weather and buyers to them - and tell you when it is worth selling."
     )
 
