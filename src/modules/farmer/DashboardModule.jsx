@@ -30,7 +30,10 @@ function TodayHero({ compact = false }) {
   const holding = insight.tone === "hold";
 
   return (
-    <div className="overflow-hidden rounded-[26px] border border-[#DCEAD5] bg-[#F7FBF5]">
+    <div
+      data-tour="advice"
+      className="overflow-hidden rounded-[26px] border border-[#DCEAD5] bg-[#F7FBF5]"
+    >
       <div className={compact ? "p-4" : "p-6"}>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#166534]">

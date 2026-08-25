@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import AlertsModule from "./modules/farmer/AlertsModule";
 import FindBuyersModule from "./modules/farmer/FindBuyersModule";
@@ -22,6 +22,8 @@ import AssistantDock from "./assistant/AssistantDock";
 import { getFarmerPageMeta } from "./components/farmer/farmerNav";
 import { loadFarmCrops } from "./farm/cropStorage";
 import { usePushRegistration } from "./lib/usePushRegistration";
+import CoachTour from "./components/CoachTour";
+import { FARMER_TOUR_STEPS, markTourSeen, shouldShowTour } from "./components/farmerTour";
 import { getStoredUser } from "./auth/session";
 import {
   canAccessAdminAnalytics,
@@ -60,6 +62,7 @@ function FarmerProtectedRoute() {
   // answer keeps streaming instead of being remounted and aborted.
   const page = getFarmerPageMeta(location.pathname);
 
+
   // Crop setup is a chrome-free step: the assistant would both overlap the crop
   // grid and offer to answer questions about a farm with no crops recorded yet.
   const showAssistant = location.pathname !== "/setup-crops";
@@ -68,7 +71,31 @@ function FarmerProtectedRoute() {
     <>
       <Outlet />
       {showAssistant ? <AssistantDock page={page.key} pageLabel={page.label} /> : null}
+      {/* Only on the dashboard: that is where the tour's first target lives, and
+          it is the first page a new account lands on once crops are recorded. */}
+      {location.pathname === "/dashboard" ? <FirstRunTour /> : null}
     </>
+  );
+}
+
+/** Shows the guided tour once, on the first visit to the dashboard.
+ *
+ *  The decision is read once into state rather than on every render, so
+ *  dismissing it does not have the component change its mind mid-animation.
+ */
+function FirstRunTour() {
+  const [open, setOpen] = useState(() => shouldShowTour());
+
+  if (!open) return null;
+
+  return (
+    <CoachTour
+      steps={FARMER_TOUR_STEPS}
+      onFinish={() => {
+        markTourSeen();
+        setOpen(false);
+      }}
+    />
   );
 }
 

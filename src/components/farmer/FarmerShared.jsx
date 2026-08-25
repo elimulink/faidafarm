@@ -218,6 +218,7 @@ function FarmerMobileMenu({ isOpen, onClose }) {
                 <NavLink
                   key={item.key}
                   to={item.path}
+                  data-tour={item.path.replace("/", "") || "dashboard"}
                   onClick={onClose}
                   className={({ isActive }) =>
                     cn(
@@ -336,6 +337,7 @@ export function DesktopShell({ current, title, subtitle, children }) {
                 <NavLink
                   key={item.key}
                   to={item.path}
+                  data-tour={item.path.replace("/", "") || "dashboard"}
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     "flex w-full items-center rounded-2xl py-3 text-left transition",
@@ -572,6 +574,7 @@ export function MobileBottomNav({ current }) {
             <NavLink
               key={item.label}
               to={item.path}
+              data-tour={item.path.replace("/", "") || "dashboard"}
               className="flex flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5"
             >
               <Icon className={cn("h-5 w-5", active ? "text-[#1C6B34]" : "text-[#7A8377]")} />
