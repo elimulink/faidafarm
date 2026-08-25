@@ -13,34 +13,39 @@ import useAssistantChat from "./useAssistantChat";
 import useAttachments from "./useAttachments";
 import { ASSISTANT_API_ENABLED } from "./assistantClient";
 import { formatChatStamp, groupChatsByRecency } from "./chatHistory";
+import { getPrimaryCropName } from "../farm/cropStorage";
 
 const ASSISTANT_NAME = "Ask Faida";
 
 // Opening the panel from a page should offer questions about that page.
+//
+// {crop} is filled in from the farm record. Naming ndengu to someone growing
+// avocado contradicts the one promise the app makes - that what it tells you
+// is matched to what you actually grow.
 const SUGGESTIONS_BY_PAGE = {
   dashboard: [
-    "Should I sell my ndengu now?",
+    "Should I sell my {crop} now?",
     "What is today's price?",
     "What needs my attention this week?",
   ],
   "my-farm": [
-    "How is my ndengu crop doing?",
+    "How is my {crop} crop doing?",
     "When should I harvest?",
     "What should I plant next season?",
   ],
   "market-intelligence": [
     "What is today's price?",
     "Is the price rising or falling?",
-    "Which market pays best for ndengu?",
+    "Which market pays best for {crop}?",
   ],
   "sell-smart": [
-    "Should I sell my ndengu now?",
+    "Should I sell my {crop} now?",
     "How much would I earn at today's price?",
     "What happens if I wait two weeks?",
   ],
   "find-buyers": [
     "Who are the best buyers near me?",
-    "Which buyer pays the most for ndengu?",
+    "Which buyer pays the most for {crop}?",
     "Which buyers collect from my farm?",
   ],
   weather: [
@@ -53,10 +58,20 @@ const SUGGESTIONS_BY_PAGE = {
 };
 
 const DEFAULT_SUGGESTIONS = [
-  "Should I sell my ndengu now?",
+  "Should I sell my {crop} now?",
   "Who are the best buyers near me?",
   "What is the weather doing this week?",
 ];
+
+/** Fills the crop into a page's questions.
+ *
+ *  Lowercased because these sit mid-sentence, and "crop" is the fallback so a
+ *  farmer who has not recorded one yet still reads a sensible question rather
+ *  than a gap.
+ */
+function withCrop(list, crop) {
+  return list.map((question) => question.replace(/\{crop\}/g, crop));
+}
 
 function useOnlineStatus() {
   const [online, setOnline] = useState(() =>
@@ -175,7 +190,10 @@ export default function AssistantDock({ page = "", pageLabel = "" }) {
   const attachments = useAttachments();
   const { messages, isStreaming, streamingMessageId } = chat;
 
-  const suggestions = SUGGESTIONS_BY_PAGE[page] || DEFAULT_SUGGESTIONS;
+  const suggestions = useMemo(() => {
+    const crop = (getPrimaryCropName("crop") || "crop").toLowerCase();
+    return withCrop(SUGGESTIONS_BY_PAGE[page] || DEFAULT_SUGGESTIONS, crop);
+  }, [page]);
 
   // Follow the stream as it grows.
   useEffect(() => {
@@ -348,6 +366,7 @@ export default function AssistantDock({ page = "", pageLabel = "" }) {
       {!open ? (
         <button
           type="button"
+          data-tour="assistant"
           onClick={() => setOpen(true)}
           aria-label={`Open ${ASSISTANT_NAME}`}
           className="fixed bottom-[86px] right-4 z-40 inline-flex items-center gap-2 rounded-full bg-[#166534] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(22,101,52,0.32)] transition hover:bg-[#14522B] md:bottom-6 md:right-6"
