@@ -22,6 +22,22 @@
           }
         },
         {
+          "client_id": "885156990402-r9lp7or63sulfpb9tm438ncev8vjlg8g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.faidafarm.app",
+            "certificate_hash": "4b56f405bb4cfe00b35c27c1fa43630ec8ff5471"
+          }
+        },
+        {
+          "client_id": "885156990402-uog19bab05d4v7fa0p84oigq4aabg401.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.faidafarm.app",
+            "certificate_hash": "eb2c23e8e71c37249fe6608b1d3d19bba4ae704a"
+          }
+        },
+        {
           "client_id": "885156990402-rv4fmdveno0uvq6jl51aqm5d4pkqlnae.apps.googleusercontent.com",
           "client_type": 3
         }
